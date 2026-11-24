@@ -260,6 +260,26 @@
     max-width: none;
     height: auto;
 }
+/* =========================================================
+   ANNOTATION LAYER
+========================================================= */
+
+.canvas-container {
+    position: relative;
+}
+
+.annotation-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    
+    width: 0;
+    height: 0;
+    
+    overflow: hidden;
+    
+    pointer-events: none;
+}
 
 /* HIDDEN SIDEBAR */
 .main-layout.sidebar-hidden .sidebar {

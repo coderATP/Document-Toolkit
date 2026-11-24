@@ -10,8 +10,9 @@ class PdfEditorApp {
         this.ui = new PdfUI(this);
 
         this.document = new PdfDocumentManager(this);
-        this.renderer = new PdfRenderer(this);
-        this.thumbnails = new ThumbnailManager(this);
+this.renderer = new PdfRenderer(this);
+this.thumbnails = new ThumbnailManager(this);
+this.annotations = new PdfAnnotationManager(this);
         this.operations = new PdfOperations(this);
 
         this.mergeFiles = [];
@@ -156,6 +157,8 @@ class PdfEditorApp {
 
         try {
             this.document.cancelCurrentRender();
+            this.annotations.clear();
+this.renderer.currentViewport = null;
 
             if (this.document.pdfDocument) {
                 this.thumbnails.cancelBuild();

@@ -507,12 +507,17 @@
                     ></div>
 
                     <div
-                        id="canvasContainer"
-                        class="canvas-container"
-                        hidden
-                    >
-                        <canvas id="pdfCanvas"></canvas>
-                    </div>
+    id="canvasContainer"
+    class="canvas-container"
+    hidden
+>
+    <canvas id="pdfCanvas"></canvas>
+
+    <div
+        id="annotationLayer"
+        class="annotation-layer"
+    ></div>
+</div>
 
                 </div>
 
@@ -543,10 +548,11 @@
     <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
 
     <script src="js/config.js"></script>
-    <script src="js/document.js"></script>
-    <script src="js/operations.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
+<script src="js/document.js"></script>
+<script src="js/operations.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/annotations.js"></script>
+<script src="js/app.js"></script>
 
 </body>
 </html>

@@ -11,7 +11,7 @@ class PdfDocumentManager {
 
     constructor(app) {
         this.app = app;
-
+        this.currentViewport = null; 
         this.pdfDocument = null;
 
         this.originalBytes = null;
@@ -46,10 +46,17 @@ class PdfDocumentManager {
         try {
             const bytes = await file.arrayBuffer();
 
-            await this.loadBytes(
-                bytes,
-                file.name
-            );
+/*
+   A newly opened PDF must not inherit annotations
+   from the previously opened document.
+*/
+
+this.app.annotations.clear();
+
+await this.loadBytes(
+    bytes,
+    file.name
+);
 
         } finally {
             this.app.ui.hideLoading();
@@ -306,11 +313,25 @@ class PdfRenderer {
 
             await renderTask.promise;
 
-            if (sequence !== manager.renderSequence) {
-                return;
-            }
+if (sequence !== manager.renderSequence) {
+    return;
+}
 
-            manager.renderTask = null;
+manager.renderTask = null;
+
+/*
+   Save the viewport used for this rendered page.
+
+   The annotation manager uses this exact viewport
+   for coordinate conversion.
+*/
+
+this.currentViewport = viewport;
+
+this.app.annotations.syncLayer(
+    pageNumber,
+    viewport
+);
 
         } catch (error) {
             if (

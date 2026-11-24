@@ -67,9 +67,9 @@ class PdfUI {
 
             "documentStage",
             "welcomeScreen",
-            "canvasContainer",
-            "pdfCanvas",
-
+           "canvasContainer",
+"pdfCanvas",
+"annotationLayer",
             "loadingIndicator",
             "loadingText",
             "errorMessage"
@@ -357,6 +357,12 @@ toggleSidebar() {
             canvas.width,
             canvas.height
         );
+        const annotationLayer = this.elements.annotationLayer;
+
+annotationLayer.innerHTML = "";
+annotationLayer.style.width = "0px";
+annotationLayer.style.height = "0px";
+annotationLayer.removeAttribute("data-page");
 
         canvas.width = 0;
         canvas.height = 0;
