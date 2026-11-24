@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#101827">
+    <title>PDF Studio — PDF Editor</title>
+
+    <link rel="stylesheet" href="assets/css/main.css">
+
+    <!-- Local PDF libraries -->
+    <script src="vendor/pdfjs/pdf.min.js"></script>
+    <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="topbar">
+            <a class="brand" href="#" aria-label="PDF Studio home">
+                <span class="brand-mark">P</span>
+                <span>PDF<span class="brand-light">Studio</span></span>
+            </a>
+
+            <div class="document-name" id="documentName">
+                No document open
+            </div>
+
+            <div class="top-actions">
+                <button
+                    class="button button-quiet"
+                    id="openFileButton"
+                    type="button"
+                >
+                    Open PDF
+                </button>
+
+                <button
+                    class="button button-primary"
+                    id="downloadButton"
+                    type="button"
+                    disabled
+                >
+                    Download PDF
+                </button>
+            </div>
+        </header>
+
+        <main class="main-layout">
+            <aside class="sidebar">
+                <div class="sidebar-heading">
+                    <div>
+                        <p class="eyebrow">DOCUMENT</p>
+                        <h1>Pages</h1>
+                    </div>
+
+                    <span class="page-count" id="pageCount">0</span>
+                </div>
+
+                <div class="thumbnail-list" id="thumbnailList">
+                    <div class="empty-thumbnails">
+                        <div class="empty-icon">▤</div>
+                        <p>Your page thumbnails will appear here.</p>
+                    </div>
+                </div>
+
+                <div class="sidebar-footer">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Ready to open a PDF</span>
+                </div>
+            </aside>
+
+            <section class="workspace" id="workspace">
+                <div class="workspace-toolbar">
+                    <div class="toolbar-group">
+                        <button
+                            class="icon-button"
+                            id="previousPageButton"
+                            type="button"
+                            aria-label="Previous page"
+                            title="Previous page"
+                            disabled
+                        >‹</button>
+
+                        <span class="page-indicator">
+                            <input
+                                id="pageNumberInput"
+                                type="number"
+                                min="1"
+                                value="1"
+                                disabled
+                                aria-label="Current page"
+                            >
+
+                            <span>/</span>
+                            <span id="totalPages">0</span>
+                        </span>
+
+                        <button
+                            class="icon-button"
+                            id="nextPageButton"
+                            type="button"
+                            aria-label="Next page"
+                            title="Next page"
+                            disabled
+                        >›</button>
+                    </div>
+
+                    <div class="toolbar-group zoom-controls">
+                        <button
+                            class="icon-button"
+                            id="zoomOutButton"
+                            type="button"
+                            aria-label="Zoom out"
+                            title="Zoom out"
+                            disabled
+                        >−</button>
+
+                        <span id="zoomValue">100%</span>
+
+                        <button
+                            class="icon-button"
+                            id="zoomInButton"
+                            type="button"
+                            aria-label="Zoom in"
+                            title="Zoom in"
+                            disabled
+                        >+</button>
+
+                        <button
+                            class="button button-quiet fit-button"
+                            id="fitButton"
+                            type="button"
+                            disabled
+                        >
+                            Fit page
+                        </button>
+                    </div>
+                </div>
+
+                <div class="document-stage" id="documentStage">
+                    <div class="welcome-panel" id="welcomePanel">
+                        <div class="welcome-art">
+                            <div class="paper paper-back"></div>
+
+                            <div class="paper paper-front">
+                                <span class="paper-fold"></span>
+                                <span class="paper-line line-one"></span>
+                                <span class="paper-line line-two"></span>
+                                <span class="paper-line line-three"></span>
+                                <span class="paper-line line-four"></span>
+                            </div>
+                        </div>
+
+                        <h2>Your documents, ready to work</h2>
+
+                        <p>
+                            Open a PDF to view its pages and prepare it for editing.
+                        </p>
+
+                        <button
+                            class="button button-primary welcome-button"
+                            id="welcomeOpenButton"
+                            type="button"
+                        >
+                            Choose a PDF
+                        </button>
+
+                        <p class="privacy-note">
+                            <span>●</span>
+                            Files are processed locally in your browser.
+                        </p>
+                    </div>
+
+                    <div class="drop-overlay" id="dropOverlay">
+                        <div class="drop-card">
+                            <div class="drop-icon">↓</div>
+                            <h2>Drop your PDF here</h2>
+                            <p>Release to open the document</p>
+                        </div>
+                    </div>
+
+                    <div class="canvas-wrap" id="canvasWrap" hidden>
+                        <div class="page-frame" id="pageFrame">
+                            <canvas id="pdfCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <input
+            id="fileInput"
+            type="file"
+            accept="application/pdf,.pdf"
+            hidden
+        >
+    </div>
+
+    <!-- Application logic -->
+    <script src="js/app.js"></script>
+</body>
+</html>
+
