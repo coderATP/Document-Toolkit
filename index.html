@@ -3,190 +3,524 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <meta
+        name="description"
+        content="A browser-based PDF editor."
+    >
     <meta name="theme-color" content="#101827">
-    <title>PDF Studio — PDF Editor</title>
+
+    <title>PDF Editor</title>
 
     <link rel="stylesheet" href="assets/css/main.css">
-
-    <!-- Local PDF libraries -->
-    <script src="vendor/pdfjs/pdf.min.js"></script>
-    <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/toolbar.css">
 </head>
+
 <body>
     <div class="app-shell">
+
+        <!-- =============================================
+             TOP NAVIGATION
+        ============================================== -->
+
         <header class="topbar">
-            <a class="brand" href="#" aria-label="PDF Studio home">
-                <span class="brand-mark">P</span>
-                <span>PDF<span class="brand-light">Studio</span></span>
-            </a>
 
-            <div class="document-name" id="documentName">
-                No document open
-            </div>
+            <div class="topbar-section topbar-left">
 
-            <div class="top-actions">
                 <button
-                    class="button button-quiet"
-                    id="openFileButton"
+                    class="top-icon-button"
+                    id="openButton"
                     type="button"
+                    title="Open PDF"
+                    aria-label="Open PDF"
                 >
-                    Open PDF
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/>
+                        <path d="M3 10h18"/>
+                    </svg>
                 </button>
 
                 <button
-                    class="button button-primary"
+                    class="top-icon-button"
                     id="downloadButton"
                     type="button"
+                    title="Download PDF"
+                    aria-label="Download PDF"
                     disabled
                 >
-                    Download PDF
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3v12"/>
+                        <path d="m7 10 5 5 5-5"/>
+                        <path d="M5 17v3h14v-3"/>
+                    </svg>
                 </button>
+
             </div>
+
+            <div class="topbar-section topbar-center">
+
+                <button
+                    id="previousPageButton"
+                    class="top-icon-button navigation-button"
+                    type="button"
+                    title="Previous page"
+                    aria-label="Previous page"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m15 18-6-6 6-6"/>
+                    </svg>
+                </button>
+
+                <span id="pageIndicator" class="page-indicator">
+                    0 / 0
+                </span>
+
+                <button
+                    id="nextPageButton"
+                    class="top-icon-button navigation-button"
+                    type="button"
+                    title="Next page"
+                    aria-label="Next page"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </button>
+
+            </div>
+
+            <div class="topbar-section topbar-right">
+
+                <button
+                    id="toggleToolbarButton"
+                    class="top-icon-button"
+                    type="button"
+                    title="Hide tools"
+                    aria-label="Hide tools"
+                    aria-expanded="true"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="16" rx="2"/>
+                        <path d="M3 9h18"/>
+                        <path d="M8 9v11"/>
+                        <path d="M13 14h4"/>
+                        <path d="M13 17h4"/>
+                    </svg>
+                </button>
+
+                <button
+                    id="toggleSidebarButton"
+                    class="top-icon-button"
+                    type="button"
+                    title="Hide thumbnails"
+                    aria-label="Hide thumbnails"
+                    aria-expanded="true"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="16" rx="2"/>
+                        <path d="M9 4v16"/>
+                        <path d="m14 9 3 3-3 3"/>
+                    </svg>
+                </button>
+
+                <button
+                    id="closeProjectButton"
+                    class="top-icon-button close-project-button"
+                    type="button"
+                    title="Close project"
+                    aria-label="Close project"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m18 6-12 12"/>
+                        <path d="m6 6 12 12"/>
+                    </svg>
+                </button>
+
+            </div>
+
         </header>
 
+        <!-- =============================================
+             EDITING TOOLBAR
+        ============================================== -->
+
+        <section
+            id="toolbarRows"
+            class="toolbar"
+            aria-label="PDF editing tools"
+        >
+
+            <div class="toolbar-group">
+
+                <button
+                    id="mergeButton"
+                    class="tool-button"
+                    type="button"
+                    title="Merge PDFs"
+                    aria-label="Merge PDFs"
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 3h8l4 4v14H7z"/>
+                        <path d="M15 3v5h4"/>
+                        <path d="M3 7v14h12"/>
+                        <path d="M12 13h6"/>
+                        <path d="m15 10 3 3-3 3"/>
+                    </svg>
+                    <span>Merge</span>
+                </button>
+
+                <button
+                    id="extractButton"
+                    class="tool-button"
+                    type="button"
+                    title="Extract pages"
+                    aria-label="Extract pages"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M8 3h8l4 4v14H8z"/>
+                        <path d="M16 3v5h4"/>
+                        <path d="M4 7v14h12"/>
+                        <path d="m12 12 3 3-3 3"/>
+                        <path d="M15 15H9"/>
+                    </svg>
+                    <span>Extract</span>
+                </button>
+
+            </div>
+
+            <div class="toolbar-divider"></div>
+
+            <div class="toolbar-group">
+
+                <button
+                    id="rotateLeftButton"
+                    class="tool-button"
+                    type="button"
+                    title="Rotate left"
+                    aria-label="Rotate left"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 10a8 8 0 1 1 1 7"/>
+                        <path d="M4 4v6h6"/>
+                        <path d="M12 8v4l-3 2"/>
+                    </svg>
+                    <span>Rotate left</span>
+                </button>
+
+                <button
+                    id="rotateRightButton"
+                    class="tool-button"
+                    type="button"
+                    title="Rotate right"
+                    aria-label="Rotate right"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M20 10a8 8 0 1 0-1 7"/>
+                        <path d="M20 4v6h-6"/>
+                        <path d="M12 8v4l3 2"/>
+                    </svg>
+                    <span>Rotate right</span>
+                </button>
+
+                <button
+                    id="deletePageButton"
+                    class="tool-button tool-danger"
+                    type="button"
+                    title="Delete current page"
+                    aria-label="Delete current page"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 7h16"/>
+                        <path d="M10 11v6"/>
+                        <path d="M14 11v6"/>
+                        <path d="m5 7 1 14h12l1-14"/>
+                        <path d="M9 7V4h6v3"/>
+                    </svg>
+                    <span>Delete</span>
+                </button>
+
+                <button
+                    id="movePageUpButton"
+                    class="tool-button"
+                    type="button"
+                    title="Move page up"
+                    aria-label="Move page up"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 19V5"/>
+                        <path d="m6 11 6-6 6 6"/>
+                    </svg>
+                    <span>Move up</span>
+                </button>
+
+                <button
+                    id="movePageDownButton"
+                    class="tool-button"
+                    type="button"
+                    title="Move page down"
+                    aria-label="Move page down"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 5v14"/>
+                        <path d="m18 13-6 6-6-6"/>
+                    </svg>
+                    <span>Move down</span>
+                </button>
+
+            </div>
+
+            <div class="toolbar-divider"></div>
+
+            <div class="toolbar-group zoom-controls">
+
+                <button
+                    id="zoomOutButton"
+                    class="tool-button icon-only-tool"
+                    type="button"
+                    title="Zoom out"
+                    aria-label="Zoom out"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="10.5" cy="10.5" r="6.5"/>
+                        <path d="m16 16 5 5"/>
+                        <path d="M7.5 10.5h6"/>
+                    </svg>
+                </button>
+
+                <span id="zoomLabel">100%</span>
+
+                <button
+                    id="zoomInButton"
+                    class="tool-button icon-only-tool"
+                    type="button"
+                    title="Zoom in"
+                    aria-label="Zoom in"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="10.5" cy="10.5" r="6.5"/>
+                        <path d="m16 16 5 5"/>
+                        <path d="M10.5 7.5v6"/>
+                        <path d="M7.5 10.5h6"/>
+                    </svg>
+                </button>
+
+                <button
+                    id="fitButton"
+                    class="tool-button"
+                    type="button"
+                    title="Fit page"
+                    aria-label="Fit page"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="5" y="3" width="14" height="18" rx="1"/>
+                        <path d="M9 7H7v2"/>
+                        <path d="m7 7 4 4"/>
+                        <path d="M15 17h2v-2"/>
+                        <path d="m17 17-4-4"/>
+                    </svg>
+                    <span>Fit</span>
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- =============================================
+             MAIN WORKSPACE
+        ============================================== -->
+
         <main class="main-layout">
-            <aside class="sidebar">
-                <div class="sidebar-heading">
-                    <div>
-                        <p class="eyebrow">DOCUMENT</p>
-                        <h1>Pages</h1>
-                    </div>
 
-                    <span class="page-count" id="pageCount">0</span>
+            <aside class="sidebar" id="sidebar">
+
+                <div class="sidebar-toolbar">
+                    <div class="sidebar-heading">
+                        <span>Pages</span>
+                        <span id="pageCount" class="muted">0</span>
+                    </div>
                 </div>
 
-                <div class="thumbnail-list" id="thumbnailList">
+                <div
+                    id="thumbnailList"
+                    class="thumbnail-list"
+                >
                     <div class="empty-thumbnails">
-                        <div class="empty-icon">▤</div>
-                        <p>Your page thumbnails will appear here.</p>
+                        Open a PDF to see its pages.
                     </div>
                 </div>
 
-                <div class="sidebar-footer">
-                    <span class="status-dot"></span>
-                    <span id="statusText">Ready to open a PDF</span>
-                </div>
             </aside>
 
-            <section class="workspace" id="workspace">
-                <div class="workspace-toolbar">
-                    <div class="toolbar-group">
-                        <button
-                            class="icon-button"
-                            id="previousPageButton"
-                            type="button"
-                            aria-label="Previous page"
-                            title="Previous page"
-                            disabled
-                        >‹</button>
+            <section class="workspace">
 
-                        <span class="page-indicator">
-                            <input
-                                id="pageNumberInput"
-                                type="number"
-                                min="1"
-                                value="1"
-                                disabled
-                                aria-label="Current page"
-                            >
+                <!-- EXTRACT PANEL -->
 
-                            <span>/</span>
-                            <span id="totalPages">0</span>
-                        </span>
+                <div id="extractPanel" class="action-panel" hidden>
+                    <div class="panel-content">
 
-                        <button
-                            class="icon-button"
-                            id="nextPageButton"
-                            type="button"
-                            aria-label="Next page"
-                            title="Next page"
-                            disabled
-                        >›</button>
-                    </div>
+                        <label for="extractRangeInput">
+                            Pages
+                        </label>
 
-                    <div class="toolbar-group zoom-controls">
-                        <button
-                            class="icon-button"
-                            id="zoomOutButton"
-                            type="button"
-                            aria-label="Zoom out"
-                            title="Zoom out"
-                            disabled
-                        >−</button>
-
-                        <span id="zoomValue">100%</span>
-
-                        <button
-                            class="icon-button"
-                            id="zoomInButton"
-                            type="button"
-                            aria-label="Zoom in"
-                            title="Zoom in"
-                            disabled
-                        >+</button>
-
-                        <button
-                            class="button button-quiet fit-button"
-                            id="fitButton"
-                            type="button"
-                            disabled
+                        <input
+                            id="extractRangeInput"
+                            type="text"
+                            placeholder="1-3, 5, 8-10"
                         >
-                            Fit page
+
+                        <button
+                            id="extractPagesButton"
+                            class="button button-primary"
+                            type="button"
+                        >
+                            Extract
                         </button>
+
+                        <button
+                            id="cancelExtractButton"
+                            class="button button-secondary"
+                            type="button"
+                        >
+                            Cancel
+                        </button>
+
                     </div>
                 </div>
+
+                <!-- MERGE PANEL -->
+
+                <div id="mergePanel" class="action-panel" hidden>
+                    <div class="merge-panel-content">
+
+                        <div class="merge-panel-heading">
+                            <strong>Merge PDFs</strong>
+
+                            <button
+                                id="closeMergeButton"
+                                class="icon-button"
+                                type="button"
+                                title="Close"
+                                aria-label="Close merge panel"
+                            >
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m18 6-12 12"/>
+                                    <path d="m6 6 12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="merge-actions">
+
+                            <button
+                                id="addMergeFilesButton"
+                                class="button button-secondary"
+                                type="button"
+                            >
+                                Add PDFs
+                            </button>
+
+                            <button
+                                id="clearMergeFilesButton"
+                                class="button button-secondary"
+                                type="button"
+                                disabled
+                            >
+                                Clear
+                            </button>
+
+                            <button
+                                id="mergeFilesButton"
+                                class="button button-primary"
+                                type="button"
+                                disabled
+                            >
+                                Merge 0 PDFs
+                            </button>
+
+                        </div>
+
+                        <div
+                            id="mergeFileList"
+                            class="merge-file-list"
+                        >
+                            <p class="merge-empty">
+                                Add at least two PDF files.
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- DOCUMENT STAGE -->
 
                 <div class="document-stage" id="documentStage">
-                    <div class="welcome-panel" id="welcomePanel">
-                        <div class="welcome-art">
-                            <div class="paper paper-back"></div>
 
-                            <div class="paper paper-front">
-                                <span class="paper-fold"></span>
-                                <span class="paper-line line-one"></span>
-                                <span class="paper-line line-two"></span>
-                                <span class="paper-line line-three"></span>
-                                <span class="paper-line line-four"></span>
-                            </div>
-                        </div>
+                    <div id="welcomeScreen" class="welcome-screen">
 
-                        <h2>Your documents, ready to work</h2>
+                        <div class="welcome-icon">PDF</div>
+
+                        <h2>Open a PDF</h2>
 
                         <p>
-                            Open a PDF to view its pages and prepare it for editing.
+                            Select a PDF file to get started.
                         </p>
 
                         <button
-                            class="button button-primary welcome-button"
                             id="welcomeOpenButton"
+                            class="button button-primary"
                             type="button"
                         >
-                            Choose a PDF
+                            Open PDF
                         </button>
 
-                        <p class="privacy-note">
-                            <span>●</span>
-                            Files are processed locally in your browser.
-                        </p>
                     </div>
 
-                    <div class="drop-overlay" id="dropOverlay">
-                        <div class="drop-card">
-                            <div class="drop-icon">↓</div>
-                            <h2>Drop your PDF here</h2>
-                            <p>Release to open the document</p>
-                        </div>
+                    <div
+                        id="loadingIndicator"
+                        class="loading-indicator"
+                        hidden
+                    >
+                        <div class="spinner"></div>
+                        <span id="loadingText">Loading...</span>
                     </div>
 
-                    <div class="canvas-wrap" id="canvasWrap" hidden>
-                        <div class="page-frame" id="pageFrame">
-                            <canvas id="pdfCanvas"></canvas>
-                        </div>
+                    <div
+                        id="errorMessage"
+                        class="error-message"
+                        hidden
+                    ></div>
+
+                    <div
+                        id="canvasContainer"
+                        class="canvas-container"
+                        hidden
+                    >
+                        <canvas id="pdfCanvas"></canvas>
                     </div>
+
                 </div>
+
             </section>
+
         </main>
+
+        <!-- FILE INPUTS -->
 
         <input
             id="fileInput"
@@ -194,10 +528,25 @@
             accept="application/pdf,.pdf"
             hidden
         >
+
+        <input
+            id="mergeInput"
+            type="file"
+            accept="application/pdf,.pdf"
+            multiple
+            hidden
+        >
+
     </div>
 
-    <!-- Application logic -->
+    <script src="vendor/pdfjs/pdf.min.js"></script>
+    <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
+
+    <script src="js/config.js"></script>
+    <script src="js/document.js"></script>
+    <script src="js/operations.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+
 </body>
 </html>
-

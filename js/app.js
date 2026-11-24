@@ -1,810 +1,521 @@
 
 /* =========================================================
-   PDF STUDIO — FOUNDATION
-
-   PDF.js handles PDF rendering.
-   pdf-lib is loaded for upcoming document operations.
-
-   This milestone includes:
-   - Opening PDF files
-   - Drag-and-drop PDF opening
-   - Page rendering
-   - Page thumbnails
-   - Page navigation
-   - Zoom controls
-   - Fit page
-   - Downloading the untouched original PDF
-
-   All PDF processing happens locally in the browser.
+   PDF EDITOR
+   Main application controller
 ========================================================= */
 
-(function () {
-    "use strict";
+class PdfEditorApp {
 
-    const pdfjsLib = window.pdfjsLib;
+    constructor() {
+        this.ui = new PdfUI(this);
 
-    if (!pdfjsLib) {
-        alert(
-            "PDF.js could not load.\n\n" +
-            "Check that this file exists:\n" +
-            "vendor/pdfjs/pdf.min.js\n\n" +
-            "Also make sure you are running the project through a local web server."
-        );
+        this.document = new PdfDocumentManager(this);
+        this.renderer = new PdfRenderer(this);
+        this.thumbnails = new ThumbnailManager(this);
+        this.operations = new PdfOperations(this);
 
-        return;
+        this.mergeFiles = [];
+
+        this.bindEvents();
+
+        this.ui.updateControls();
     }
-
-    // Use the locally stored PDF.js worker.
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "vendor/pdfjs/pdf.worker.min.js";
-
-    const state = {
-        pdfDocument: null,
-        originalBytes: null,
-        fileName: "",
-        currentPage: 1,
-        scale: 1,
-        minScale: 0.4,
-        maxScale: 2.5,
-        renderTask: null,
-        isRendering: false,
-        thumbnailTasks: []
-    };
-
-    const elements = {
-        fileInput: document.getElementById("fileInput"),
-        openFileButton: document.getElementById("openFileButton"),
-        welcomeOpenButton: document.getElementById("welcomeOpenButton"),
-        downloadButton: document.getElementById("downloadButton"),
-        documentName: document.getElementById("documentName"),
-        pageCount: document.getElementById("pageCount"),
-        totalPages: document.getElementById("totalPages"),
-        thumbnailList: document.getElementById("thumbnailList"),
-        statusText: document.getElementById("statusText"),
-        welcomePanel: document.getElementById("welcomePanel"),
-        canvasWrap: document.getElementById("canvasWrap"),
-        canvas: document.getElementById("pdfCanvas"),
-        pageFrame: document.getElementById("pageFrame"),
-        pageNumberInput: document.getElementById("pageNumberInput"),
-        previousPageButton: document.getElementById("previousPageButton"),
-        nextPageButton: document.getElementById("nextPageButton"),
-        zoomOutButton: document.getElementById("zoomOutButton"),
-        zoomInButton: document.getElementById("zoomInButton"),
-        zoomValue: document.getElementById("zoomValue"),
-        fitButton: document.getElementById("fitButton"),
-        workspace: document.getElementById("workspace"),
-        dropOverlay: document.getElementById("dropOverlay")
-    };
-
-    const mainContext = elements.canvas.getContext("2d", {
-        alpha: false
-    });
 
     /* =====================================================
-       GENERAL UI HELPERS
+       EVENT REGISTRATION
     ===================================================== */
 
-    function setStatus(message) {
-        elements.statusText.textContent = message;
-    }
+    bindEvents() {
+        const el = this.ui.elements;
 
-    function setDocumentControlsEnabled(enabled) {
-        elements.downloadButton.disabled = !enabled;
-        elements.pageNumberInput.disabled = !enabled;
-        elements.previousPageButton.disabled = !enabled;
-        elements.nextPageButton.disabled = !enabled;
-        elements.zoomOutButton.disabled = !enabled;
-        elements.zoomInButton.disabled = !enabled;
-        elements.fitButton.disabled = !enabled;
-    }
-
-    function openFilePicker() {
-        elements.fileInput.click();
+        this.bindOpenEvents(el);
+        this.bindDownloadEvents(el);
+        this.bindToolbarEvents(el);
+        this.bindSidebarEvents(el);
+        this.bindCloseProjectEvents(el);
+        this.bindMergeEvents(el);
+        this.bindExtractEvents(el);
+        this.bindPageOperationEvents(el);
+        this.bindNavigationEvents(el);
+        this.bindZoomEvents(el);
     }
 
     /* =====================================================
        OPEN PDF
     ===================================================== */
 
-    async function handleSelectedFile(file) {
-        if (!file) {
-            return;
-        }
+    bindOpenEvents(el) {
+        const openFilePicker = function () {
+            el.fileInput.value = "";
+            el.fileInput.click();
+        };
 
-        const isPdf =
-            file.type === "application/pdf" ||
-            file.name.toLowerCase().endsWith(".pdf");
+        el.openButton.addEventListener(
+            "click",
+            openFilePicker
+        );
 
-        if (!isPdf) {
-            alert("Please choose a PDF file.");
-            return;
-        }
+        el.welcomeOpenButton.addEventListener(
+            "click",
+            openFilePicker
+        );
 
-        if (file.size === 0) {
-            alert("This file is empty.");
-            return;
-        }
+        el.fileInput.addEventListener(
+            "change",
+            async function (event) {
+                const file = event.target.files[0];
 
-        setStatus("Opening document…");
-        elements.documentName.textContent = file.name;
+                if (!file) {
+                    return;
+                }
 
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const bytes = new Uint8Array(arrayBuffer);
+                try {
+                    await this.document.openFile(file);
 
-            // Preserve an untouched copy of the original document.
-            state.originalBytes = bytes.slice();
-            state.fileName = file.name;
+                } catch (error) {
+                    console.error(error);
 
-            const loadingTask = pdfjsLib.getDocument({
-                data: bytes.slice()
-            });
+                    this.ui.showError(
+                        error.message ||
+                        "Could not open this PDF."
+                    );
 
-            const pdfDocument = await loadingTask.promise;
-
-            state.pdfDocument = pdfDocument;
-            state.currentPage = 1;
-            state.scale = 1;
-
-            elements.welcomePanel.hidden = true;
-            elements.canvasWrap.hidden = false;
-
-            elements.pageCount.textContent =
-                String(pdfDocument.numPages);
-
-            elements.totalPages.textContent =
-                String(pdfDocument.numPages);
-
-            setDocumentControlsEnabled(true);
-
-            updatePageControls();
-            updateZoomLabel();
-
-            await buildThumbnails();
-            await renderCurrentPage();
-
-            setStatus("Document loaded");
-
-        } catch (error) {
-            console.error("PDF opening failed:", error);
-
-            resetViewer();
-
-            alert(
-                "This PDF could not be opened. " +
-                "It may be damaged, password-protected, or unsupported."
-            );
-
-            setStatus("Could not open document");
-        }
+                } finally {
+                    event.target.value = "";
+                }
+            }.bind(this)
+        );
     }
 
     /* =====================================================
-       RESET VIEWER
+       DOWNLOAD
     ===================================================== */
 
-    function resetViewer() {
-        state.pdfDocument = null;
-        state.originalBytes = null;
-        state.fileName = "";
-        state.currentPage = 1;
-        state.scale = 1;
-
-        elements.documentName.textContent = "No document open";
-        elements.canvasWrap.hidden = true;
-        elements.welcomePanel.hidden = false;
-
-        elements.thumbnailList.innerHTML =
-            '<div class="empty-thumbnails">' +
-                '<div class="empty-icon">▤</div>' +
-                '<p>Your page thumbnails will appear here.</p>' +
-            '</div>';
-
-        elements.pageCount.textContent = "0";
-        elements.totalPages.textContent = "0";
-        elements.pageNumberInput.value = "1";
-
-        setDocumentControlsEnabled(false);
-        updateZoomLabel();
+    bindDownloadEvents(el) {
+        el.downloadButton.addEventListener(
+            "click",
+            function () {
+                this.operations.downloadCurrentDocument();
+            }.bind(this)
+        );
     }
 
     /* =====================================================
-       RENDER CURRENT PAGE
+       TOOLBAR VISIBILITY
     ===================================================== */
 
-    async function renderCurrentPage() {
-        if (!state.pdfDocument || state.isRendering) {
+    bindToolbarEvents(el) {
+        el.toggleToolbarButton.addEventListener(
+            "click",
+            function () {
+                this.ui.toggleToolbar();
+            }.bind(this)
+        );
+    }
+
+    /* =====================================================
+       THUMBNAIL SIDEBAR VISIBILITY
+    ===================================================== */
+
+    bindSidebarEvents(el) {
+        el.toggleSidebarButton.addEventListener(
+            "click",
+            function () {
+                this.ui.toggleSidebar();
+            }.bind(this)
+        );
+    }
+
+    /* =====================================================
+       CLOSE PROJECT
+    ===================================================== */
+
+    bindCloseProjectEvents(el) {
+        el.closeProjectButton.addEventListener(
+            "click",
+            function () {
+                this.closeProject();
+            }.bind(this)
+        );
+    }
+
+    async closeProject() {
+        if (!this.document.hasDocument) {
             return;
         }
 
-        state.isRendering = true;
+        const confirmed = confirm(
+            "Close the current PDF project?"
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        this.ui.showLoading("Closing PDF...");
 
         try {
-            if (state.renderTask) {
-                state.renderTask.cancel();
-                state.renderTask = null;
+            this.document.cancelCurrentRender();
+
+            if (this.document.pdfDocument) {
+                this.thumbnails.cancelBuild();
+                await this.document.pdfDocument.destroy();
             }
 
-            const page = await state.pdfDocument.getPage(
-                state.currentPage
-            );
+            this.document.pdfDocument = null;
 
-            const viewport = page.getViewport({
-                scale: state.scale
-            });
+            this.document.originalBytes = null;
+            this.document.workingBytes = null;
 
-            const outputScale = Math.min(
-                window.devicePixelRatio || 1,
-                2
-            );
+            this.document.fileName = "";
+            this.document.totalPages = 0;
+            this.document.currentPage = 1;
+            this.document.zoom = 1;
 
-            elements.canvas.width = Math.floor(
-                viewport.width * outputScale
-            );
+            this.document.renderTask = null;
 
-            elements.canvas.height = Math.floor(
-                viewport.height * outputScale
-            );
+            this.mergeFiles = [];
 
-            elements.canvas.style.width =
-                Math.floor(viewport.width) + "px";
+            this.ui.renderMergeList(this.mergeFiles);
 
-            elements.canvas.style.height =
-                Math.floor(viewport.height) + "px";
+            this.ui.resetDocumentInterface();
 
-            elements.pageFrame.style.width =
-                Math.floor(viewport.width) + "px";
-
-            elements.pageFrame.style.height =
-                Math.floor(viewport.height) + "px";
-
-            const renderContext = {
-                canvasContext: mainContext,
-                viewport: viewport,
-                transform: outputScale !== 1
-                    ? [
-                        outputScale,
-                        0,
-                        0,
-                        outputScale,
-                        0,
-                        0
-                    ]
-                    : null
-            };
-
-            state.renderTask = page.render(renderContext);
-
-            await state.renderTask.promise;
+            this.ui.setStatus("Project closed");
 
         } catch (error) {
-            if (
-                error &&
-                error.name !== "RenderingCancelledException"
-            ) {
-                console.error("Page rendering failed:", error);
-                setStatus("Page rendering failed");
-            }
+            console.error("Close project error:", error);
+
+            this.ui.showError(
+                "Could not close the current PDF."
+            );
 
         } finally {
-            state.renderTask = null;
-            state.isRendering = false;
+            this.ui.hideLoading();
         }
-
-        updatePageControls();
     }
 
     /* =====================================================
-       BUILD PAGE THUMBNAILS
+       MERGE
     ===================================================== */
 
-    async function buildThumbnails() {
-        elements.thumbnailList.innerHTML = "";
+    bindMergeEvents(el) {
+        el.mergeButton.addEventListener(
+            "click",
+            function () {
+                el.mergePanel.hidden =
+                    !el.mergePanel.hidden;
 
-        for (
-            let pageNumber = 1;
-            pageNumber <= state.pdfDocument.numPages;
-            pageNumber += 1
-        ) {
-            const button = document.createElement("button");
+                el.extractPanel.hidden = true;
+            }
+        );
 
-            button.type = "button";
-            button.className = "thumbnail-item";
-            button.dataset.page = String(pageNumber);
+        el.closeMergeButton.addEventListener(
+            "click",
+            function () {
+                el.mergePanel.hidden = true;
+            }
+        );
 
-            button.setAttribute(
-                "aria-label",
-                "Go to page " + pageNumber
+        el.addMergeFilesButton.addEventListener(
+            "click",
+            function () {
+                el.mergeInput.value = "";
+                el.mergeInput.click();
+            }
+        );
+
+        el.mergeInput.addEventListener(
+            "change",
+            function (event) {
+                const selectedFiles = Array.from(
+                    event.target.files || []
+                );
+
+                this.addMergeFiles(selectedFiles);
+
+                event.target.value = "";
+            }.bind(this)
+        );
+
+        el.clearMergeFilesButton.addEventListener(
+            "click",
+            function () {
+                this.mergeFiles = [];
+
+                this.ui.renderMergeList(
+                    this.mergeFiles
+                );
+            }.bind(this)
+        );
+
+        el.mergeFilesButton.addEventListener(
+            "click",
+            async function () {
+                try {
+                    await this.operations.merge(
+                        this.mergeFiles
+                    );
+
+                    this.mergeFiles = [];
+
+                    this.ui.renderMergeList(
+                        this.mergeFiles
+                    );
+
+                    el.mergePanel.hidden = true;
+
+                } catch (error) {
+                    console.error(error);
+
+                    this.ui.showError(
+                        error.message ||
+                        "Could not merge PDFs."
+                    );
+
+                } finally {
+                    this.ui.hideLoading();
+                }
+            }.bind(this)
+        );
+    }
+
+    addMergeFiles(files) {
+        for (const file of files) {
+            const isPdf =
+                file.type === "application/pdf" ||
+                file.name.toLowerCase().endsWith(".pdf");
+
+            if (!isPdf) {
+                continue;
+            }
+
+            const duplicate = this.mergeFiles.some(
+                function (existingFile) {
+                    return (
+                        existingFile.name === file.name &&
+                        existingFile.size === file.size &&
+                        existingFile.lastModified === file.lastModified
+                    );
+                }
             );
 
-            const canvasWrap = document.createElement("span");
-            canvasWrap.className = "thumbnail-canvas-wrap";
-
-            const canvas = document.createElement("canvas");
-
-            canvasWrap.appendChild(canvas);
-
-            const label = document.createElement("span");
-
-            label.className = "thumbnail-label";
-            label.textContent = "Page " + pageNumber;
-
-            button.appendChild(canvasWrap);
-            button.appendChild(label);
-
-            button.addEventListener("click", function () {
-                goToPage(pageNumber);
-            });
-
-            elements.thumbnailList.appendChild(button);
-
-            try {
-                const page = await state.pdfDocument.getPage(
-                    pageNumber
-                );
-
-                const baseViewport = page.getViewport({
-                    scale: 1
-                });
-
-                const thumbnailWidth = 116;
-
-                const thumbnailScale =
-                    thumbnailWidth / baseViewport.width;
-
-                const viewport = page.getViewport({
-                    scale: thumbnailScale
-                });
-
-                const context = canvas.getContext("2d", {
-                    alpha: false
-                });
-
-                canvas.width = Math.floor(viewport.width);
-                canvas.height = Math.floor(viewport.height);
-
-                await page.render({
-                    canvasContext: context,
-                    viewport: viewport
-                }).promise;
-
-            } catch (error) {
-                console.warn(
-                    "Could not render thumbnail for page " +
-                    pageNumber,
-                    error
-                );
+            if (!duplicate) {
+                this.mergeFiles.push(file);
             }
         }
 
-        updateActiveThumbnail();
+        this.ui.renderMergeList(this.mergeFiles);
+    }
+
+    removeMergeFile(index) {
+        this.mergeFiles.splice(index, 1);
+
+        this.ui.renderMergeList(this.mergeFiles);
     }
 
     /* =====================================================
-       ACTIVE THUMBNAIL
+       EXTRACT
     ===================================================== */
 
-    function updateActiveThumbnail() {
-        const thumbnailButtons =
-            elements.thumbnailList.querySelectorAll(
-                ".thumbnail-item"
-            );
+    bindExtractEvents(el) {
+        el.extractButton.addEventListener(
+            "click",
+            function () {
+                el.extractPanel.hidden =
+                    !el.extractPanel.hidden;
 
-        thumbnailButtons.forEach(function (button) {
-            const isActive =
-                Number(button.dataset.page) === state.currentPage;
-
-            button.classList.toggle("active", isActive);
-
-            if (isActive) {
-                button.setAttribute("aria-current", "page");
-            } else {
-                button.removeAttribute("aria-current");
+                el.mergePanel.hidden = true;
             }
-        });
+        );
+
+        el.extractPagesButton.addEventListener(
+            "click",
+            async function () {
+                try {
+                    await this.operations.extract(
+                        el.extractRangeInput.value
+                    );
+
+                    el.extractPanel.hidden = true;
+                    el.extractRangeInput.value = "";
+
+                } catch (error) {
+                    console.error(error);
+
+                    this.ui.showError(
+                        error.message ||
+                        "Could not extract pages."
+                    );
+
+                } finally {
+                    this.ui.hideLoading();
+                }
+            }.bind(this)
+        );
+
+        el.cancelExtractButton.addEventListener(
+            "click",
+            function () {
+                el.extractPanel.hidden = true;
+                el.extractRangeInput.value = "";
+            }
+        );
     }
 
     /* =====================================================
-       PAGE CONTROLS
+       ROTATION, DELETE AND REORDER
     ===================================================== */
 
-    function updatePageControls() {
-        if (!state.pdfDocument) {
-            return;
-        }
+    bindPageOperationEvents(el) {
+        el.rotateLeftButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.operations.rotate(-90)
+                );
+            }.bind(this)
+        );
 
-        elements.pageNumberInput.value =
-            String(state.currentPage);
+        el.rotateRightButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.operations.rotate(90)
+                );
+            }.bind(this)
+        );
 
-        elements.previousPageButton.disabled =
-            state.currentPage <= 1;
+        el.deletePageButton.addEventListener(
+            "click",
+            function () {
+                const confirmed = confirm(
+                    "Delete the current page?"
+                );
 
-        elements.nextPageButton.disabled =
-            state.currentPage >= state.pdfDocument.numPages;
+                if (!confirmed) {
+                    return;
+                }
 
-        updateActiveThumbnail();
-    }
+                this.runOperation(
+                    this.operations.deleteCurrentPage()
+                );
+            }.bind(this)
+        );
 
-    /* =====================================================
-       ZOOM LABEL
-    ===================================================== */
+        el.movePageUpButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.operations.moveCurrentPage(-1)
+                );
+            }.bind(this)
+        );
 
-    function updateZoomLabel() {
-        elements.zoomValue.textContent =
-            Math.round(state.scale * 100) + "%";
+        el.movePageDownButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.operations.moveCurrentPage(1)
+                );
+            }.bind(this)
+        );
     }
 
     /* =====================================================
        PAGE NAVIGATION
     ===================================================== */
 
-    async function goToPage(pageNumber) {
-        if (!state.pdfDocument) {
-            return;
-        }
-
-        const safePage = Math.max(
-            1,
-            Math.min(
-                state.pdfDocument.numPages,
-                Number(pageNumber)
-            )
+    bindNavigationEvents(el) {
+        el.previousPageButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.document.goToPage(
+                        this.document.currentPage - 1
+                    )
+                );
+            }.bind(this)
         );
 
-        if (!Number.isFinite(safePage)) {
-            return;
-        }
-
-        state.currentPage = safePage;
-
-        updatePageControls();
-
-        await renderCurrentPage();
-
-        const activeThumbnail =
-            elements.thumbnailList.querySelector(
-                ".thumbnail-item.active"
-            );
-
-        if (activeThumbnail) {
-            activeThumbnail.scrollIntoView({
-                block: "nearest",
-                behavior: "smooth"
-            });
-        }
+        el.nextPageButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.document.goToPage(
+                        this.document.currentPage + 1
+                    )
+                );
+            }.bind(this)
+        );
     }
 
     /* =====================================================
        ZOOM
     ===================================================== */
 
-    async function changeZoom(amount) {
-        if (!state.pdfDocument) {
-            return;
-        }
-
-        state.scale = Math.max(
-            state.minScale,
-            Math.min(
-                state.maxScale,
-                state.scale + amount
-            )
-        );
-
-        updateZoomLabel();
-
-        await renderCurrentPage();
-    }
-
-    /* =====================================================
-       FIT PAGE
-    ===================================================== */
-
-    async function fitPage() {
-        if (!state.pdfDocument) {
-            return;
-        }
-
-        const page = await state.pdfDocument.getPage(
-            state.currentPage
-        );
-
-        const unscaledViewport = page.getViewport({
-            scale: 1
-        });
-
-        const stage = document.getElementById("documentStage");
-
-        const availableWidth = Math.max(
-            150,
-            stage.clientWidth - 80
-        );
-
-        const availableHeight = Math.max(
-            150,
-            stage.clientHeight - 70
-        );
-
-        const widthScale =
-            availableWidth / unscaledViewport.width;
-
-        const heightScale =
-            availableHeight / unscaledViewport.height;
-
-        state.scale = Math.max(
-            state.minScale,
-            Math.min(
-                state.maxScale,
-                Math.min(widthScale, heightScale)
-            )
-        );
-
-        updateZoomLabel();
-
-        await renderCurrentPage();
-    }
-
-    /* =====================================================
-       DOWNLOAD ORIGINAL PDF
-    ===================================================== */
-
-    function downloadOriginal() {
-        if (!state.originalBytes) {
-            return;
-        }
-
-        const blob = new Blob(
-            [state.originalBytes],
-            {
-                type: "application/pdf"
-            }
-        );
-
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-
-        const baseName = state.fileName.replace(
-            /\.pdf$/i,
-            ""
-        );
-
-        link.href = url;
-
-        link.download =
-            (baseName || "document") + "-copy.pdf";
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        link.remove();
-
-        window.setTimeout(function () {
-            URL.revokeObjectURL(url);
-        }, 1000);
-    }
-
-    /* =====================================================
-       FILE SELECTION
-    ===================================================== */
-
-    elements.openFileButton.addEventListener(
-        "click",
-        openFilePicker
-    );
-
-    elements.welcomeOpenButton.addEventListener(
-        "click",
-        openFilePicker
-    );
-
-    elements.fileInput.addEventListener(
-        "change",
-        async function (event) {
-            const file =
-                event.target.files &&
-                event.target.files[0];
-
-            await handleSelectedFile(file);
-
-            event.target.value = "";
-        }
-    );
-
-    /* =====================================================
-       PAGE NAVIGATION EVENTS
-    ===================================================== */
-
-    elements.previousPageButton.addEventListener(
-        "click",
-        function () {
-            goToPage(state.currentPage - 1);
-        }
-    );
-
-    elements.nextPageButton.addEventListener(
-        "click",
-        function () {
-            goToPage(state.currentPage + 1);
-        }
-    );
-
-    elements.pageNumberInput.addEventListener(
-        "change",
-        function () {
-            goToPage(elements.pageNumberInput.value);
-        }
-    );
-
-    elements.pageNumberInput.addEventListener(
-        "keydown",
-        function (event) {
-            if (event.key === "Enter") {
-                goToPage(elements.pageNumberInput.value);
-                elements.pageNumberInput.blur();
-            }
-        }
-    );
-
-    /* =====================================================
-       ZOOM EVENTS
-    ===================================================== */
-
-    elements.zoomOutButton.addEventListener(
-        "click",
-        function () {
-            changeZoom(-0.1);
-        }
-    );
-
-    elements.zoomInButton.addEventListener(
-        "click",
-        function () {
-            changeZoom(0.1);
-        }
-    );
-
-    elements.fitButton.addEventListener(
-        "click",
-        fitPage
-    );
-
-    elements.downloadButton.addEventListener(
-        "click",
-        downloadOriginal
-    );
-
-    /* =====================================================
-       DRAG AND DROP PDF OPENING
-    ===================================================== */
-
-    let dragDepth = 0;
-
-    document.addEventListener(
-        "dragenter",
-        function (event) {
-            event.preventDefault();
-
-            dragDepth += 1;
-
-            elements.dropOverlay.classList.add("visible");
-        }
-    );
-
-    document.addEventListener(
-        "dragover",
-        function (event) {
-            event.preventDefault();
-        }
-    );
-
-    document.addEventListener(
-        "dragleave",
-        function (event) {
-            event.preventDefault();
-
-            dragDepth -= 1;
-
-            if (dragDepth <= 0) {
-                dragDepth = 0;
-
-                elements.dropOverlay.classList.remove(
-                    "visible"
+    bindZoomEvents(el) {
+        el.zoomInButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.document.changeZoom(
+                        PDF_CONFIG.zoomStep
+                    )
                 );
-            }
-        }
-    );
+            }.bind(this)
+        );
 
-    document.addEventListener(
-        "drop",
-        async function (event) {
-            event.preventDefault();
+        el.zoomOutButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.document.changeZoom(
+                        -PDF_CONFIG.zoomStep
+                    )
+                );
+            }.bind(this)
+        );
 
-            dragDepth = 0;
+        el.fitButton.addEventListener(
+            "click",
+            function () {
+                this.runOperation(
+                    this.document.fitToWidth()
+                );
+            }.bind(this)
+        );
+    }
 
-            elements.dropOverlay.classList.remove(
-                "visible"
+    /* =====================================================
+       COMMON OPERATION HANDLER
+    ===================================================== */
+
+    async runOperation(operation) {
+        try {
+            await operation;
+
+        } catch (error) {
+            console.error(error);
+
+            this.ui.showError(
+                error.message ||
+                "The operation could not be completed."
             );
 
-            const files =
-                event.dataTransfer &&
-                event.dataTransfer.files;
-
-            if (files && files.length > 0) {
-                await handleSelectedFile(files[0]);
-            }
+        } finally {
+            this.ui.hideLoading();
         }
-    );
+    }
 
-    /* =====================================================
-       KEYBOARD SHORTCUTS
-    ===================================================== */
+}
 
-    document.addEventListener(
-        "keydown",
-        function (event) {
-            const target = event.target;
+/* =========================================================
+   START APPLICATION
+========================================================= */
 
-            const isTyping =
-                target &&
-                (
-                    target.tagName === "INPUT" ||
-                    target.tagName === "TEXTAREA"
-                );
-
-            if (
-                isTyping ||
-                !state.pdfDocument ||
-                event.ctrlKey ||
-                event.metaKey ||
-                event.altKey
-            ) {
-                return;
-            }
-
-            if (
-                event.key === "ArrowLeft" ||
-                event.key === "PageUp"
-            ) {
-                goToPage(state.currentPage - 1);
-
-            } else if (
-                event.key === "ArrowRight" ||
-                event.key === "PageDown"
-            ) {
-                goToPage(state.currentPage + 1);
-
-            } else if (
-                event.key === "+" ||
-                event.key === "="
-            ) {
-                changeZoom(0.1);
-
-            } else if (event.key === "-") {
-                changeZoom(-0.1);
-            }
-        }
-    );
-
-    /* =====================================================
-       WINDOW RESIZE
-    ===================================================== */
-
-    window.addEventListener(
-        "resize",
-        function () {
-            if (state.pdfDocument) {
-                renderCurrentPage();
-            }
-        }
-    );
-
-    /* =====================================================
-       INITIALIZE
-    ===================================================== */
-
-    setDocumentControlsEnabled(false);
-
-})();
-
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+        window.pdfEditor = new PdfEditorApp();
+    }
+);
