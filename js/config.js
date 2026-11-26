@@ -1,14 +1,8 @@
-/* =========================================================
-   PDF EDITOR
-   Shared configuration and utilities
-========================================================= */
-
-"use strict";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
     "vendor/pdfjs/pdf.worker.min.js";
 
-const PDF_CONFIG = {
+export const PDF_CONFIG = {
     renderScale: 1.5,
     thumbnailScale: 0.25,
 
@@ -17,11 +11,7 @@ const PDF_CONFIG = {
     zoomStep: 0.15
 };
 
-/* =========================================================
-   GENERAL UTILITIES
-========================================================= */
-
-class PdfUtils {
+export class PdfUtils {
 
     static formatFileSize(bytes) {
         if (bytes < 1024) {
@@ -134,5 +124,4 @@ class PdfUtils {
             return a - b;
         });
     }
-
 }

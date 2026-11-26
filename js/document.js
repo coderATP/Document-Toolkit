@@ -1,17 +1,11 @@
-/* =========================================================
-   PDF EDITOR
-   Document management and rendering
-========================================================= */
 
-/* =========================================================
-   DOCUMENT MANAGER
-========================================================= */
+import { PDF_CONFIG } from "./config.js";
 
-class PdfDocumentManager {
+export class PdfDocumentManager {
 
     constructor(app) {
         this.app = app;
-        this.currentViewport = null; 
+        this.currentViewport = null;
         this.pdfDocument = null;
 
         this.originalBytes = null;
@@ -46,17 +40,12 @@ class PdfDocumentManager {
         try {
             const bytes = await file.arrayBuffer();
 
-/*
-   A newly opened PDF must not inherit annotations
-   from the previously opened document.
-*/
+            this.app.annotations.clear();
 
-this.app.annotations.clear();
-
-await this.loadBytes(
-    bytes,
-    file.name
-);
+            await this.loadBytes(
+                bytes,
+                file.name
+            );
 
         } finally {
             this.app.ui.hideLoading();
@@ -64,76 +53,55 @@ await this.loadBytes(
     }
 
     async loadBytes(bytes, fileName) {
-    // Stop any thumbnail generation from the previous document.
-    this.app.thumbnails.cancelBuild();
-    
-    this.cancelCurrentRender();
-    
-    if (this.pdfDocument) {
-        await this.pdfDocument.destroy();
-        
-        this.pdfDocument = null;
+        this.app.thumbnails.cancelBuild();
+
+        this.cancelCurrentRender();
+
+        if (this.pdfDocument) {
+            await this.pdfDocument.destroy();
+
+            this.pdfDocument = null;
+        }
+
+        const workingCopy = new Uint8Array(bytes);
+        const renderingCopy = workingCopy.slice();
+
+        const loadingTask = pdfjsLib.getDocument({
+            data: renderingCopy
+        });
+
+        const loadedDocument = await loadingTask.promise;
+
+        this.pdfDocument = loadedDocument;
+
+        this.originalBytes = workingCopy.slice();
+        this.workingBytes = workingCopy.slice();
+
+        this.fileName = fileName || "document.pdf";
+
+        this.totalPages = loadedDocument.numPages;
+        this.currentPage = 1;
+
+        this.zoom = 1;
+
+        this.app.ui.showDocument();
+        this.app.ui.updateDocumentInformation();
+
+        await this.app.renderer.renderCurrentPage();
+
+        this.app.ui.updateControls();
+
+        this.app.ui.hideLoading();
+
+        this.app.ui.setStatus("PDF opened");
+
+        this.app.thumbnails.build().catch(function (error) {
+            console.error(
+                "Background thumbnail generation failed:",
+                error
+            );
+        });
     }
-    
-    /*
-       PDF.js may detach the ArrayBuffer passed to it.
-
-       Keep separate copies for rendering and editing.
-    */
-    
-    const workingCopy = new Uint8Array(bytes);
-    
-    const renderingCopy = workingCopy.slice();
-    
-    const loadingTask = pdfjsLib.getDocument({
-        data: renderingCopy
-    });
-    
-    const loadedDocument = await loadingTask.promise;
-    
-    this.pdfDocument = loadedDocument;
-    
-    this.originalBytes = workingCopy.slice();
-    this.workingBytes = workingCopy.slice();
-    
-    this.fileName = fileName || "document.pdf";
-    
-    this.totalPages = loadedDocument.numPages;
-    this.currentPage = 1;
-    
-    this.zoom = 1;
-    
-    this.app.ui.showDocument();
-    this.app.ui.updateDocumentInformation();
-    
-    /*
-       Render page 1 before generating thumbnails.
-
-       This ensures the user sees the document as soon
-       as its first page is ready.
-    */
-    
-    await this.app.renderer.renderCurrentPage();
-    
-    this.app.ui.updateControls();
-    
-    this.app.ui.hideLoading();
-    
-    this.app.ui.setStatus("PDF opened");
-    
-    /*
-       Generate thumbnails independently.
-
-       Do not await this operation.
-    */
-    
-    this.app.thumbnails.build().catch(function(error) {
-        console.error(
-            "Background thumbnail generation failed:",
-            error
-        );
-    });
-}
 
     async reloadWorkingDocument(bytes) {
         const fileName = this.fileName;
@@ -168,17 +136,9 @@ await this.loadBytes(
             return;
         }
 
-        this.zoom = Math.min(
-            PDF_CONFIG.maximumZoom,
-            Math.max(
-                PDF_CONFIG.minimumZoom,
-                this.zoom + amount
-            )
+        await this.app.zoom.setZoom(
+            this.zoom + amount
         );
-
-        this.app.ui.updateZoomLabel();
-
-        await this.app.renderer.renderCurrentPage();
     }
 
     async fitToWidth() {
@@ -206,13 +166,6 @@ await this.loadBytes(
             stage.clientHeight - 32
         );
 
-        /*
-           The renderer multiplies zoom by renderScale.
-
-           Divide by renderScale here so that Fit page
-           calculates the correct actual canvas dimensions.
-        */
-
         const widthScale =
             availableWidth /
             (baseViewport.width * PDF_CONFIG.renderScale);
@@ -221,20 +174,16 @@ await this.loadBytes(
             availableHeight /
             (baseViewport.height * PDF_CONFIG.renderScale);
 
-        this.zoom = Math.min(
-            widthScale,
-            heightScale,
-            PDF_CONFIG.maximumZoom
-        );
-
-        this.zoom = Math.max(
+        const fitZoom = Math.max(
             PDF_CONFIG.minimumZoom,
-            this.zoom
+            Math.min(
+                widthScale,
+                heightScale,
+                PDF_CONFIG.maximumZoom
+            )
         );
 
-        this.app.ui.updateZoomLabel();
-
-        await this.app.renderer.renderCurrentPage();
+        await this.app.zoom.setZoom(fitZoom);
 
         stage.scrollTop = 0;
         stage.scrollLeft = 0;
@@ -248,7 +197,6 @@ await this.loadBytes(
                 this.renderTask.cancel();
 
             } catch (error) {
-                // The render may already have completed.
             }
 
             this.renderTask = null;
@@ -258,14 +206,9 @@ await this.loadBytes(
     get hasDocument() {
         return Boolean(this.pdfDocument);
     }
-
 }
 
-/* =========================================================
-   PDF RENDERER
-========================================================= */
-
-class PdfRenderer {
+export class PdfRenderer {
 
     constructor(app) {
         this.app = app;
@@ -313,25 +256,18 @@ class PdfRenderer {
 
             await renderTask.promise;
 
-if (sequence !== manager.renderSequence) {
-    return;
-}
+            if (sequence !== manager.renderSequence) {
+                return;
+            }
 
-manager.renderTask = null;
+            manager.renderTask = null;
 
-/*
-   Save the viewport used for this rendered page.
+            this.currentViewport = viewport;
 
-   The annotation manager uses this exact viewport
-   for coordinate conversion.
-*/
-
-this.currentViewport = viewport;
-
-this.app.annotations.syncLayer(
-    pageNumber,
-    viewport
-);
+            this.app.annotations.syncLayer(
+                pageNumber,
+                viewport
+            );
 
         } catch (error) {
             if (
@@ -368,14 +304,9 @@ this.app.annotations.syncLayer(
             viewport: viewport
         }).promise;
     }
-
 }
 
-/* =========================================================
-   THUMBNAIL MANAGER
-========================================================= */
-
-class ThumbnailManager {
+export class ThumbnailManager {
 
     constructor(app) {
         this.app = app;
@@ -383,17 +314,9 @@ class ThumbnailManager {
         this.buildSequence = 0;
     }
 
-    /* =====================================================
-       CANCEL THUMBNAIL GENERATION
-    ===================================================== */
-
     cancelBuild() {
         this.buildSequence++;
     }
-
-    /* =====================================================
-       BUILD THUMBNAILS
-    ===================================================== */
 
     async build() {
         const container = this.app.ui.elements.thumbnailList;
@@ -404,13 +327,6 @@ class ThumbnailManager {
         if (!pdfDocument) {
             return;
         }
-
-        /*
-           Each build receives a unique sequence number.
-
-           Older builds stop when a new document is opened
-           or thumbnail generation is cancelled.
-        */
 
         const sequence = ++this.buildSequence;
 
@@ -423,7 +339,6 @@ class ThumbnailManager {
             pageNumber <= totalPages;
             pageNumber++
         ) {
-            // Stop if this build is no longer active.
             if (
                 sequence !== this.buildSequence ||
                 document.pdfDocument !== pdfDocument
@@ -460,7 +375,6 @@ class ThumbnailManager {
                 );
             }
 
-            // Check again after asynchronous rendering.
             if (
                 sequence !== this.buildSequence ||
                 document.pdfDocument !== pdfDocument
@@ -471,10 +385,6 @@ class ThumbnailManager {
             this.updateActivePage();
         }
     }
-
-    /* =====================================================
-       CREATE THUMBNAIL ELEMENT
-    ===================================================== */
 
     createThumbnailElement(pageNumber) {
         const item = document.createElement("div");
@@ -510,10 +420,6 @@ class ThumbnailManager {
         return item;
     }
 
-    /* =====================================================
-       UPDATE ACTIVE PAGE
-    ===================================================== */
-
     updateActivePage() {
         const items = this.app.ui.elements.thumbnailList
             .querySelectorAll(".thumbnail-item");
@@ -539,5 +445,4 @@ class ThumbnailManager {
             });
         }
     }
-
 }

@@ -1,18 +1,49 @@
 
-/* =========================================================
-   PDF EDITOR
-   Main application controller
-========================================================= */
+import { PdfUI } from "./ui.js";
 
-class PdfEditorApp {
+import {
+    PdfDocumentManager,
+    PdfRenderer,
+    ThumbnailManager
+} from "./document.js";
+
+import { PdfZoomManager } from "./managers/zoom-manager.js";
+
+import { PdfAnnotationManager } from "./annotations.js";
+
+import { PdfTextFormatter } from "./managers/text-formatter.js";
+
+import { PdfAnnotationDragManager } from "./managers/annotation-drag-manager.js";
+
+import { PdfAnnotationRotateManager } from "./managers/annotation-rotate-manager.js";
+
+import { PdfAnnotationResizeManager } from "./managers/annotation-resize-manager.js";
+
+import { PdfPagePanManager } from "./managers/page-pan-manager.js";
+
+import { PdfOperations } from "./operations.js";
+
+export class PdfEditorApp {
 
     constructor() {
         this.ui = new PdfUI(this);
 
         this.document = new PdfDocumentManager(this);
-this.renderer = new PdfRenderer(this);
-this.thumbnails = new ThumbnailManager(this);
-this.annotations = new PdfAnnotationManager(this);
+        this.renderer = new PdfRenderer(this);
+        this.thumbnails = new ThumbnailManager(this);
+
+        this.zoom = new PdfZoomManager(this);
+
+        this.annotations = new PdfAnnotationManager(this);
+
+        this.formatter = new PdfTextFormatter(this);
+
+        this.annotationDrag = new PdfAnnotationDragManager(this);
+        this.annotationRotate = new PdfAnnotationRotateManager(this);
+        this.annotationResize = new PdfAnnotationResizeManager(this);
+
+        this.pagePan = new PdfPagePanManager(this);
+
         this.operations = new PdfOperations(this);
 
         this.mergeFiles = [];
@@ -21,10 +52,6 @@ this.annotations = new PdfAnnotationManager(this);
 
         this.ui.updateControls();
     }
-
-    /* =====================================================
-       EVENT REGISTRATION
-    ===================================================== */
 
     bindEvents() {
         const el = this.ui.elements;
@@ -41,12 +68,8 @@ this.annotations = new PdfAnnotationManager(this);
         this.bindZoomEvents(el);
     }
 
-    /* =====================================================
-       OPEN PDF
-    ===================================================== */
-
     bindOpenEvents(el) {
-        const openFilePicker = function () {
+        const openFilePicker = function() {
             el.fileInput.value = "";
             el.fileInput.click();
         };
@@ -63,7 +86,7 @@ this.annotations = new PdfAnnotationManager(this);
 
         el.fileInput.addEventListener(
             "change",
-            async function (event) {
+            async function(event) {
                 const file = event.target.files[0];
 
                 if (!file) {
@@ -88,53 +111,50 @@ this.annotations = new PdfAnnotationManager(this);
         );
     }
 
-    /* =====================================================
-       DOWNLOAD
-    ===================================================== */
-
     bindDownloadEvents(el) {
         el.downloadButton.addEventListener(
             "click",
-            function () {
-                this.operations.downloadCurrentDocument();
+            async function() {
+                try {
+                    await this.operations.downloadCurrentDocument();
+
+                } catch (error) {
+                    console.error(error);
+
+                    this.ui.showError(
+                        error.message ||
+                        "Could not prepare the PDF download."
+                    );
+
+                } finally {
+                    this.ui.hideLoading();
+                }
             }.bind(this)
         );
     }
 
-    /* =====================================================
-       TOOLBAR VISIBILITY
-    ===================================================== */
-
     bindToolbarEvents(el) {
         el.toggleToolbarButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.ui.toggleToolbar();
             }.bind(this)
         );
     }
 
-    /* =====================================================
-       THUMBNAIL SIDEBAR VISIBILITY
-    ===================================================== */
-
     bindSidebarEvents(el) {
         el.toggleSidebarButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.ui.toggleSidebar();
             }.bind(this)
         );
     }
 
-    /* =====================================================
-       CLOSE PROJECT
-    ===================================================== */
-
     bindCloseProjectEvents(el) {
         el.closeProjectButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.closeProject();
             }.bind(this)
         );
@@ -157,11 +177,14 @@ this.annotations = new PdfAnnotationManager(this);
 
         try {
             this.document.cancelCurrentRender();
+
             this.annotations.clear();
-this.renderer.currentViewport = null;
+
+            this.renderer.currentViewport = null;
 
             if (this.document.pdfDocument) {
                 this.thumbnails.cancelBuild();
+
                 await this.document.pdfDocument.destroy();
             }
 
@@ -197,14 +220,10 @@ this.renderer.currentViewport = null;
         }
     }
 
-    /* =====================================================
-       MERGE
-    ===================================================== */
-
     bindMergeEvents(el) {
         el.mergeButton.addEventListener(
             "click",
-            function () {
+            function() {
                 el.mergePanel.hidden =
                     !el.mergePanel.hidden;
 
@@ -214,14 +233,14 @@ this.renderer.currentViewport = null;
 
         el.closeMergeButton.addEventListener(
             "click",
-            function () {
+            function() {
                 el.mergePanel.hidden = true;
             }
         );
 
         el.addMergeFilesButton.addEventListener(
             "click",
-            function () {
+            function() {
                 el.mergeInput.value = "";
                 el.mergeInput.click();
             }
@@ -229,7 +248,7 @@ this.renderer.currentViewport = null;
 
         el.mergeInput.addEventListener(
             "change",
-            function (event) {
+            function(event) {
                 const selectedFiles = Array.from(
                     event.target.files || []
                 );
@@ -242,7 +261,7 @@ this.renderer.currentViewport = null;
 
         el.clearMergeFilesButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.mergeFiles = [];
 
                 this.ui.renderMergeList(
@@ -253,7 +272,7 @@ this.renderer.currentViewport = null;
 
         el.mergeFilesButton.addEventListener(
             "click",
-            async function () {
+            async function() {
                 try {
                     await this.operations.merge(
                         this.mergeFiles
@@ -293,7 +312,7 @@ this.renderer.currentViewport = null;
             }
 
             const duplicate = this.mergeFiles.some(
-                function (existingFile) {
+                function(existingFile) {
                     return (
                         existingFile.name === file.name &&
                         existingFile.size === file.size &&
@@ -316,14 +335,10 @@ this.renderer.currentViewport = null;
         this.ui.renderMergeList(this.mergeFiles);
     }
 
-    /* =====================================================
-       EXTRACT
-    ===================================================== */
-
     bindExtractEvents(el) {
         el.extractButton.addEventListener(
             "click",
-            function () {
+            function() {
                 el.extractPanel.hidden =
                     !el.extractPanel.hidden;
 
@@ -333,7 +348,7 @@ this.renderer.currentViewport = null;
 
         el.extractPagesButton.addEventListener(
             "click",
-            async function () {
+            async function() {
                 try {
                     await this.operations.extract(
                         el.extractRangeInput.value
@@ -358,21 +373,17 @@ this.renderer.currentViewport = null;
 
         el.cancelExtractButton.addEventListener(
             "click",
-            function () {
+            function() {
                 el.extractPanel.hidden = true;
                 el.extractRangeInput.value = "";
             }
         );
     }
 
-    /* =====================================================
-       ROTATION, DELETE AND REORDER
-    ===================================================== */
-
     bindPageOperationEvents(el) {
         el.rotateLeftButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
                     this.operations.rotate(-90)
                 );
@@ -381,7 +392,7 @@ this.renderer.currentViewport = null;
 
         el.rotateRightButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
                     this.operations.rotate(90)
                 );
@@ -390,7 +401,7 @@ this.renderer.currentViewport = null;
 
         el.deletePageButton.addEventListener(
             "click",
-            function () {
+            function() {
                 const confirmed = confirm(
                     "Delete the current page?"
                 );
@@ -407,7 +418,7 @@ this.renderer.currentViewport = null;
 
         el.movePageUpButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
                     this.operations.moveCurrentPage(-1)
                 );
@@ -416,7 +427,7 @@ this.renderer.currentViewport = null;
 
         el.movePageDownButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
                     this.operations.moveCurrentPage(1)
                 );
@@ -424,14 +435,10 @@ this.renderer.currentViewport = null;
         );
     }
 
-    /* =====================================================
-       PAGE NAVIGATION
-    ===================================================== */
-
     bindNavigationEvents(el) {
         el.previousPageButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
                     this.document.goToPage(
                         this.document.currentPage - 1
@@ -442,7 +449,7 @@ this.renderer.currentViewport = null;
 
         el.nextPageButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
                     this.document.goToPage(
                         this.document.currentPage + 1
@@ -452,46 +459,34 @@ this.renderer.currentViewport = null;
         );
     }
 
-    /* =====================================================
-       ZOOM
-    ===================================================== */
-
     bindZoomEvents(el) {
         el.zoomInButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
-                    this.document.changeZoom(
-                        PDF_CONFIG.zoomStep
-                    )
+                    this.zoom.zoomIn()
                 );
             }.bind(this)
         );
 
         el.zoomOutButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
-                    this.document.changeZoom(
-                        -PDF_CONFIG.zoomStep
-                    )
+                    this.zoom.zoomOut()
                 );
             }.bind(this)
         );
 
         el.fitButton.addEventListener(
             "click",
-            function () {
+            function() {
                 this.runOperation(
-                    this.document.fitToWidth()
+                    this.zoom.fit()
                 );
             }.bind(this)
         );
     }
-
-    /* =====================================================
-       COMMON OPERATION HANDLER
-    ===================================================== */
 
     async runOperation(operation) {
         try {
@@ -512,13 +507,9 @@ this.renderer.currentViewport = null;
 
 }
 
-/* =========================================================
-   START APPLICATION
-========================================================= */
-
 document.addEventListener(
     "DOMContentLoaded",
-    function () {
+    function() {
         window.pdfEditor = new PdfEditorApp();
     }
 );

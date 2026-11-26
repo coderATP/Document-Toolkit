@@ -1,0 +1,94 @@
+
+/* =========================================================
+   PDF EDITOR
+   Text annotation resize handles
+========================================================= */
+
+.pdf-text-resize {
+    position: absolute;
+
+    display: block;
+
+    width: 10px;
+    height: 10px;
+
+    padding: 0;
+
+    background: #ffffff;
+    border: 2px solid #20d9ff;
+    border-radius: 2px;
+
+    z-index: 15;
+
+    opacity: 0;
+    pointer-events: none;
+
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.pdf-text-annotation.selected .pdf-text-resize {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Four sides */
+
+.pdf-text-resize.n {
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: ns-resize;
+}
+
+.pdf-text-resize.s {
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: ns-resize;
+}
+
+.pdf-text-resize.e {
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: ew-resize;
+}
+
+.pdf-text-resize.w {
+    left: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: ew-resize;
+}
+
+/* Four corners */
+
+.pdf-text-resize.nw {
+    top: -5px;
+    left: -5px;
+    cursor: nwse-resize;
+}
+
+.pdf-text-resize.ne {
+    top: -5px;
+    right: -5px;
+    cursor: nesw-resize;
+}
+
+.pdf-text-resize.sw {
+    bottom: -5px;
+    left: -5px;
+    cursor: nesw-resize;
+}
+
+.pdf-text-resize.se {
+    bottom: -5px;
+    right: -5px;
+    cursor: nwse-resize;
+}
+
+.pdf-text-resize.resizing {
+    background: #2563B8;
+}

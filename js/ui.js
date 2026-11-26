@@ -1,10 +1,7 @@
 
-/* =========================================================
-   PDF EDITOR
-   User interface management
-========================================================= */
+import { PdfUtils } from "./config.js";
 
-class PdfUI {
+export class PdfUI {
 
     constructor(app) {
         this.app = app;
@@ -12,10 +9,6 @@ class PdfUI {
 
         this.cacheElements();
     }
-
-    /* =====================================================
-       CACHE HTML ELEMENTS
-    ===================================================== */
 
     cacheElements() {
         const ids = [
@@ -67,22 +60,24 @@ class PdfUI {
 
             "documentStage",
             "welcomeScreen",
-           "canvasContainer",
-"pdfCanvas",
-"annotationLayer",
+            "canvasContainer",
+            "pdfCanvas",
+            "annotationLayer",
             "loadingIndicator",
             "loadingText",
-            "errorMessage"
+            "errorMessage",
+            "addTextButton",
+            "textFontSize",
+            "textColor",
+            "textBoldButton",
+            "textItalicButton",
+            "deleteTextButton"
         ];
 
         ids.forEach(function (id) {
             this.elements[id] = document.getElementById(id);
         }, this);
     }
-
-    /* =====================================================
-       LOADING
-    ===================================================== */
 
     showLoading(message) {
         this.clearError();
@@ -97,10 +92,6 @@ class PdfUI {
         this.elements.loadingIndicator.hidden = true;
     }
 
-    /* =====================================================
-       ERRORS
-    ===================================================== */
-
     showError(message) {
         const element = this.elements.errorMessage;
 
@@ -112,10 +103,6 @@ class PdfUI {
         this.elements.errorMessage.hidden = true;
         this.elements.errorMessage.textContent = "";
     }
-
-    /* =====================================================
-       DOCUMENT VISIBILITY
-    ===================================================== */
 
     showDocument() {
         this.clearError();
@@ -130,10 +117,6 @@ class PdfUI {
         this.elements.welcomeScreen.hidden = false;
         this.elements.canvasContainer.hidden = true;
     }
-
-    /* =====================================================
-       DOCUMENT INFORMATION
-    ===================================================== */
 
     updateDocumentInformation() {
         const document = this.app.document;
@@ -161,10 +144,6 @@ class PdfUI {
         this.elements.zoomLabel.textContent =
             Math.round(this.app.document.zoom * 100) + "%";
     }
-
-    /* =====================================================
-       BUTTON STATES
-    ===================================================== */
 
     updateControls() {
         const document = this.app.document;
@@ -213,13 +192,24 @@ class PdfUI {
         this.elements.fitButton.disabled =
             !hasDocument;
 
+        this.elements.addTextButton.disabled =
+            !hasDocument;
+
+        this.elements.textFontSize.disabled =
+            !hasDocument;
+
+        this.elements.textColor.disabled =
+            !hasDocument;
+
+        this.elements.textBoldButton.disabled =
+            !hasDocument;
+
+        this.elements.textItalicButton.disabled =
+            !hasDocument;
+
         this.updatePageInformation();
         this.updateZoomLabel();
     }
-
-    /* =====================================================
-       TOOLBAR VISIBILITY
-    ===================================================== */
 
     toggleToolbar() {
         const toolbar = this.elements.toolbarRows;
@@ -264,76 +254,68 @@ class PdfUI {
             `;
     }
 
-    /* =====================================================
-       THUMBNAIL SIDEBAR VISIBILITY
-    ===================================================== */
+    toggleSidebar() {
+        const sidebar = this.elements.sidebar;
+        const button = this.elements.toggleSidebarButton;
 
-toggleSidebar() {
-    const sidebar = this.elements.sidebar;
-    const button = this.elements.toggleSidebarButton;
-    
-    if (!sidebar || !button) {
-        console.error(
-            "Thumbnail sidebar or toggle button was not found."
+        if (!sidebar || !button) {
+            console.error(
+                "Thumbnail sidebar or toggle button was not found."
+            );
+            return;
+        }
+
+        const layout = sidebar.parentElement;
+
+        if (!layout) {
+            console.error("Thumbnail sidebar has no parent layout.");
+            return;
+        }
+
+        const isHidden = layout.classList.toggle("sidebar-hidden");
+
+        button.setAttribute(
+            "aria-expanded",
+            String(!isHidden)
         );
-        return;
-    }
-    
-    const layout = sidebar.parentElement;
-    
-    if (!layout) {
-        console.error("Thumbnail sidebar has no parent layout.");
-        return;
-    }
-    
-    const isHidden = layout.classList.toggle("sidebar-hidden");
-    
-    button.setAttribute(
-        "aria-expanded",
-        String(!isHidden)
-    );
-    
-    button.title = isHidden ?
-        "Show thumbnails" :
-        "Hide thumbnails";
-    
-    button.setAttribute(
-        "aria-label",
-        button.title
-    );
-    
-    button.innerHTML = isHidden ?
-        `
-            <svg viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2"/>
-                <path d="M9 4v16"/>
-                <path d="m14 9 3 3-3 3"/>
-            </svg>
-        ` :
-        `
-            <svg viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2"/>
-                <path d="M9 4v16"/>
-                <path d="m17 9-3 3 3 3"/>
-            </svg>
-        `;
-}
 
-    /* =====================================================
-       RESET DOCUMENT INTERFACE
-    ===================================================== */
+        button.title = isHidden ?
+            "Show thumbnails" :
+            "Hide thumbnails";
+
+        button.setAttribute(
+            "aria-label",
+            button.title
+        );
+
+        button.innerHTML = isHidden ?
+            `
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2"/>
+                    <path d="M9 4v16"/>
+                    <path d="m14 9 3 3-3 3"/>
+                </svg>
+            ` :
+            `
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2"/>
+                    <path d="M9 4v16"/>
+                    <path d="m17 9-3 3 3 3"/>
+                </svg>
+            `;
+    }
 
     resetDocumentInterface() {
         this.elements.pageCount.textContent = "0";
@@ -357,12 +339,13 @@ toggleSidebar() {
             canvas.width,
             canvas.height
         );
+
         const annotationLayer = this.elements.annotationLayer;
 
-annotationLayer.innerHTML = "";
-annotationLayer.style.width = "0px";
-annotationLayer.style.height = "0px";
-annotationLayer.removeAttribute("data-page");
+        annotationLayer.innerHTML = "";
+        annotationLayer.style.width = "0px";
+        annotationLayer.style.height = "0px";
+        annotationLayer.removeAttribute("data-page");
 
         canvas.width = 0;
         canvas.height = 0;
@@ -375,11 +358,8 @@ annotationLayer.removeAttribute("data-page");
         this.showWelcome();
         this.updateControls();
     }
-    setStatus(message){}
 
-    /* =====================================================
-       MERGE FILE LIST
-    ===================================================== */
+    setStatus(message) {}
 
     renderMergeList(files) {
         const container = this.elements.mergeFileList;
@@ -444,5 +424,4 @@ annotationLayer.removeAttribute("data-page");
         this.elements.clearMergeFilesButton.disabled =
             files.length === 0;
     }
-
 }

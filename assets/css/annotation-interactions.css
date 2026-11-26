@@ -1,0 +1,280 @@
+
+/* =========================================================
+   PDF EDITOR
+   Annotation interaction styles
+========================================================= */
+
+/* Annotation layer must receive pointer events. */
+
+.annotation-layer {
+    pointer-events: auto;
+}
+
+/* TEXTBOX DRAG HANDLE */
+
+.pdf-text-move {
+    flex: 0 0 auto;
+
+    width: 20px;
+    height: 20px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border: none;
+    border-radius: 4px;
+
+    background: #2584ff;
+    color: #fff;
+
+    font-size: 14px;
+    line-height: 1;
+
+    cursor: grab;
+
+    opacity: 0;
+
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.pdf-text-annotation.selected .pdf-text-move {
+    opacity: 1;
+}
+
+.pdf-text-move:active,
+.pdf-text-move.dragging {
+    cursor: grabbing;
+    background: #1265d8;
+}
+
+/* DOUBLE STRIKETHROUGH */
+
+.pdf-text-content {
+    position: relative;
+}
+
+.pdf-text-content.text-double-strikethrough::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    right: 0;
+
+    top: 50%;
+
+    height: 4px;
+
+    border-top: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+
+    pointer-events: none;
+}
+
+/* Prevent text selection while dragging the handle. */
+
+.pdf-text-move,
+.pdf-text-move * {
+    user-select: none;
+    -webkit-user-select: none;
+}
+/* =========================================================
+   SELECTED TEXTBOX BORDER
+========================================================= */
+
+.pdf-text-annotation.selected {
+    outline: 2px dashed #20d9ff;
+    outline-offset: 2px;
+}
+
+/* =========================================================
+   TEXT PLACEHOLDER
+========================================================= */
+
+.pdf-text-content:empty::before {
+    content: "Type here";
+    color: #000;
+    opacity: 1;
+    font-weight: 600;
+    font-size: inherit;
+    pointer-events: none;
+}
+
+/* =========================================================
+   TEXTBOX CONTENT
+========================================================= */
+
+.pdf-text-content {
+    box-sizing: border-box;
+}
+/* =========================================================
+   PRECISE TEXTBOX HIT AREA
+========================================================= */
+
+.pdf-text-annotation {
+    width: max-content;
+    height: auto;
+}
+
+.pdf-text-content {
+    display: inline-block;
+    width: max-content;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+
+    box-sizing: border-box;
+    white-space: pre-wrap;
+
+    padding: 0;
+    margin: 0;
+}
+/* =========================================================
+   TEXTBOX SELECTION BORDER
+========================================================= */
+
+.pdf-text-annotation {
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.pdf-text-annotation.selected {
+    border: 3px solid #20d9ff;
+    outline: none;
+    border-radius: 5px;
+}
+
+/* Only the outer annotation wrapper has a border. */
+.pdf-text-content {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+/* Remove any previous double-border pseudo-elements. */
+.pdf-text-annotation::before,
+.pdf-text-annotation::after,
+.pdf-text-content::before,
+.pdf-text-content::after {
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
+/* =========================================================
+   TEXTBOX INTERACTION CONTROLS
+========================================================= */
+
+.annotation-layer {
+    pointer-events: auto;
+}
+
+.pdf-text-annotation {
+    position: absolute;
+
+    box-sizing: border-box;
+
+    border: none;
+    outline: none;
+    border-radius: 5px;
+
+    transform-origin: center center;
+}
+
+.pdf-text-annotation.selected {
+    border: 3px solid #20d9ff;
+    outline: none;
+    border-radius: 5px;
+}
+
+.pdf-text-content {
+    display: block;
+
+    box-sizing: border-box;
+
+    width: 100%;
+    height: 100%;
+
+    min-width: 0;
+    max-width: none;
+
+    padding: 0;
+    margin: 0;
+
+    border: none !important;
+    outline: none !important;
+    box-shadow: none;
+
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+
+    background: transparent;
+}
+
+.pdf-text-content:empty::before {
+    content: "Type here";
+
+    color: #000000;
+    opacity: 1;
+
+    font-weight: normal;
+    font-style: normal;
+
+    pointer-events: none;
+}
+
+/* Prevent selection while manipulating controls. */
+
+.pdf-text-move,
+.pdf-text-rotate,
+.pdf-text-resize,
+.pdf-text-move *,
+.pdf-text-rotate *,
+.pdf-text-resize * {
+    user-select: none;
+    -webkit-user-select: none;
+}
+.pdf-text-annotation {
+    width: max-content;
+    height: auto;
+}
+
+.pdf-text-content {
+    display: inline-block;
+    vertical-align: top;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+/* =========================================================
+   DEEP BLUE TEXTBOX DRAG CONTROL
+========================================================= */
+
+.pdf-text-move {
+    background: #123B78;
+    color: #FFFFFF;
+}
+
+.pdf-text-move:hover {
+    background: #1B4F96;
+}
+
+.pdf-text-move:active,
+.pdf-text-move.dragging {
+    background: #2563B8;
+}
+/* =========================================================
+   DEEP BLUE SELECTED TEXTBOX BORDER
+========================================================= */
+
+.pdf-text-annotation.selected {
+    border: 3px solid #123B78;
+    outline: none;
+}

@@ -17,15 +17,17 @@
 
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/zoom.css">
     <link rel="stylesheet" href="assets/css/toolbar.css">
+    <link rel="stylesheet" href="assets/css/text-formatter.css">
+    <link rel="stylesheet" href="assets/css/page-pan.css">
+    <link rel="stylesheet" href="assets/css/annotation-interactions.css">
+    <link rel="stylesheet" href="assets/css/annotation-rotate.css">
+    <link rel="stylesheet" href="assets/css/annotation-resize.css">
 </head>
 
 <body>
     <div class="app-shell">
-
-        <!-- =============================================
-             TOP NAVIGATION
-        ============================================== -->
 
         <header class="topbar">
 
@@ -147,10 +149,6 @@
 
         </header>
 
-        <!-- =============================================
-             EDITING TOOLBAR
-        ============================================== -->
-
         <section
             id="toolbarRows"
             class="toolbar"
@@ -195,6 +193,28 @@
                 </button>
 
             </div>
+
+            <div class="toolbar-group">
+
+                <button
+                    id="addTextButton"
+                    class="tool-button"
+                    type="button"
+                    title="Add text to PDF"
+                    aria-label="Add text"
+                    disabled
+                >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 6h16"/>
+                        <path d="M12 6v13"/>
+                        <path d="M8 19h8"/>
+                    </svg>
+                    <span>Add Text</span>
+                </button>
+
+            </div>
+
+            <div class="toolbar-divider"></div>
 
             <div class="toolbar-divider"></div>
 
@@ -341,10 +361,6 @@
 
         </section>
 
-        <!-- =============================================
-             MAIN WORKSPACE
-        ============================================== -->
-
         <main class="main-layout">
 
             <aside class="sidebar" id="sidebar">
@@ -368,8 +384,6 @@
             </aside>
 
             <section class="workspace">
-
-                <!-- EXTRACT PANEL -->
 
                 <div id="extractPanel" class="action-panel" hidden>
                     <div class="panel-content">
@@ -402,8 +416,6 @@
 
                     </div>
                 </div>
-
-                <!-- MERGE PANEL -->
 
                 <div id="mergePanel" class="action-panel" hidden>
                     <div class="merge-panel-content">
@@ -467,8 +479,6 @@
                     </div>
                 </div>
 
-                <!-- DOCUMENT STAGE -->
-
                 <div class="document-stage" id="documentStage">
 
                     <div id="welcomeScreen" class="welcome-screen">
@@ -507,25 +517,23 @@
                     ></div>
 
                     <div
-    id="canvasContainer"
-    class="canvas-container"
-    hidden
->
-    <canvas id="pdfCanvas"></canvas>
+                        id="canvasContainer"
+                        class="canvas-container"
+                        hidden
+                    >
+                        <canvas id="pdfCanvas"></canvas>
 
-    <div
-        id="annotationLayer"
-        class="annotation-layer"
-    ></div>
-</div>
+                        <div
+                            id="annotationLayer"
+                            class="annotation-layer"
+                        ></div>
+                    </div>
 
                 </div>
 
             </section>
 
         </main>
-
-        <!-- FILE INPUTS -->
 
         <input
             id="fileInput"
@@ -544,15 +552,35 @@
 
     </div>
 
+    <div hidden aria-hidden="true">
+        <select id="textFontSize">
+            <option value="10">10</option>
+            <option value="12" selected>12</option>
+            <option value="14">14</option>
+            <option value="16">16</option>
+            <option value="18">18</option>
+            <option value="20">20</option>
+            <option value="24">24</option>
+            <option value="28">28</option>
+            <option value="36">36</option>
+            <option value="48">48</option>
+        </select>
+
+        <input
+            type="color"
+            id="textColor"
+            value="#000000"
+        >
+
+        <button type="button" id="textBoldButton"></button>
+        <button type="button" id="textItalicButton"></button>
+        <button type="button" id="deleteTextButton"></button>
+    </div>
+
     <script src="vendor/pdfjs/pdf.min.js"></script>
     <script src="vendor/pdf-lib/pdf-lib.min.js"></script>
 
-    <script src="js/config.js"></script>
-<script src="js/document.js"></script>
-<script src="js/operations.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/annotations.js"></script>
-<script src="js/app.js"></script>
+    <script type="module" src="js/app.js"></script>
 
 </body>
 </html>

@@ -273,3 +273,83 @@
         gap: 5px;
     }
 }
+
+/* =====================================================
+   TEXT ANNOTATION TOOLBAR
+===================================================== */
+
+#textFontSize {
+    width: 65px;
+    min-height: 34px;
+    padding: 4px;
+}
+
+#textColor {
+    width: 38px;
+    height: 34px;
+    padding: 2px;
+    cursor: pointer;
+}
+
+.tool-button.active {
+    background: #263b59;
+    border-color: #4c8dff;
+    color: #ffffff;
+}
+
+/* =====================================================
+   PDF TEXT ANNOTATIONS
+===================================================== */
+
+.annotation-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+    pointer-events: auto;
+}
+
+.pdf-text-annotation {
+    position: absolute;
+    min-width: 40px;
+    min-height: 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 2px;
+    border: 1px solid transparent;
+    background: transparent;
+    z-index: 5;
+}
+
+.pdf-text-annotation.selected {
+    border: 1px dashed #2584ff;
+    background: rgba(37, 132, 255, 0.05);
+}
+
+.pdf-text-content {
+    min-width: 35px;
+    min-height: 20px;
+    outline: none;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    cursor: text;
+}
+
+.pdf-text-move {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 3px;
+    background: #2584ff;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: move;
+    opacity: 0;
+}
+
+.pdf-text-annotation.selected .pdf-text-move {
+    opacity: 1;
+}

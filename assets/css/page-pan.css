@@ -1,0 +1,28 @@
+
+/* =========================================================
+   PDF EDITOR
+   Document panning
+========================================================= */
+
+.document-stage.page-panning {
+    cursor: grabbing !important;
+    user-select: none;
+}
+
+.document-stage.page-panning * {
+    user-select: none;
+}
+
+.document-stage:not(.page-panning) .canvas-container {
+    cursor: grab;
+}
+
+/* Keep text editing and textbox dragging cursors. */
+
+.pdf-text-content {
+    cursor: text;
+}
+
+.pdf-text-move {
+    cursor: move;
+}

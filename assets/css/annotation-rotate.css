@@ -1,0 +1,99 @@
+
+/* =========================================================
+   PDF EDITOR
+   Text annotation rotation controls
+========================================================= */
+
+.pdf-text-controls {
+    position: absolute;
+
+    left: 50%;
+    top: -12px;
+
+    transform: translate(-50%, -100%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    z-index: 20;
+
+    opacity: 0;
+    pointer-events: none;
+}
+
+.pdf-text-annotation.selected .pdf-text-controls {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.pdf-text-move,
+.pdf-text-rotate {
+    flex: 0 0 auto;
+
+    width: 28px;
+    height: 28px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 0;
+
+    border: none;
+    border-radius: 5px;
+
+    background: #2584ff;
+    color: #ffffff;
+
+    font-size: 17px;
+    line-height: 1;
+
+    cursor: pointer;
+
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.pdf-text-move {
+    cursor: grab;
+}
+
+.pdf-text-rotate {
+    cursor: crosshair;
+}
+
+.pdf-text-move:active,
+.pdf-text-move.dragging {
+    cursor: grabbing;
+    background: #1265d8;
+}
+
+.pdf-text-rotate:active,
+.pdf-text-rotate.rotating {
+    background: #1265d8;
+}
+
+/* =========================================================
+   DEEP BLUE ANNOTATION CONTROLS
+========================================================= */
+
+.pdf-text-move,
+.pdf-text-rotate {
+    background: #123B78;
+    color: #FFFFFF;
+}
+
+.pdf-text-move:hover,
+.pdf-text-rotate:hover {
+    background: #1B4F96;
+}
+
+.pdf-text-move:active,
+.pdf-text-move.dragging,
+.pdf-text-rotate:active,
+.pdf-text-rotate.rotating {
+    background: #2563B8;
+}

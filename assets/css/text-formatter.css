@@ -1,0 +1,167 @@
+
+/* =========================================================
+   PDF EDITOR
+   Contextual text formatter
+========================================================= */
+
+.text-formatter {
+    position: fixed;
+    z-index: 1000;
+
+    max-width: calc(100vw - 16px);
+
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+
+    padding: 8px;
+
+    border: 1px solid #28528A;
+    border-radius: 9px;
+
+    background: #102F5C;
+
+    box-shadow:
+        0 5px 20px rgba(0, 0, 0, 0.4);
+}
+
+.text-formatter[hidden] {
+    display: none !important;
+}
+
+.formatter-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.formatter-divider {
+    width: 1px;
+    height: 25px;
+    flex-shrink: 0;
+
+    background: #365A88;
+}
+
+.formatter-font-size {
+    width: 55px;
+    height: 32px;
+
+    padding: 0 5px;
+
+    border: 1px solid #365A88;
+    border-radius: 5px;
+
+    outline: none;
+
+    background: #091F40;
+    color: #FFFFFF;
+
+    font-size: 12px;
+}
+
+.formatter-font-size:focus {
+    border-color: #20D9FF;
+}
+
+.formatter-text-color,
+.formatter-background-color {
+    width: 32px;
+    height: 32px;
+
+    padding: 3px;
+
+    border: 1px solid #365A88;
+    border-radius: 5px;
+
+    background: #091F40;
+
+    cursor: pointer;
+}
+
+.formatter-button {
+    width: 32px;
+    height: 32px;
+
+    display: grid;
+    place-items: center;
+
+    flex-shrink: 0;
+
+    border: 1px solid #365A88;
+    border-radius: 5px;
+
+    background: #194477;
+    color: #FFFFFF;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.formatter-button:hover {
+    background: #2563B8;
+    border-color: #4B83CA;
+}
+
+.formatter-button.active {
+    border-color: #20D9FF;
+
+    background: #2563B8;
+
+    color: #FFFFFF;
+}
+
+.formatter-italic {
+    font-style: italic;
+}
+
+.formatter-underline {
+    text-decoration: underline;
+}
+
+.formatter-strike {
+    text-decoration: line-through;
+}
+
+.double-strike-icon {
+    position: relative;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.double-strike-icon::after,
+.double-strike-icon::before {
+    content: "";
+
+    position: absolute;
+    left: -2px;
+    right: -2px;
+
+    height: 1px;
+
+    background: currentColor;
+}
+
+.double-strike-icon::before {
+    top: 45%;
+}
+
+.double-strike-icon::after {
+    top: 60%;
+}
+
+.formatter-clear-background {
+    font-size: 19px;
+    font-weight: 400;
+}
+
+.formatter-delete {
+    color: #FF8888;
+}
+
+.formatter-delete:hover {
+    border-color: #FF5555;
+    background: rgba(224, 82, 82, 0.2);
+}
