@@ -80,13 +80,53 @@ export class PdfUI {
     }
 
     showLoading(message) {
-        this.clearError();
+    this.clearError();
 
-        this.elements.loadingText.textContent =
-            message || "Loading...";
+    const loadingText = this.elements.loadingText;
+    const loadingIndicator = this.elements.loadingIndicator;
 
-        this.elements.loadingIndicator.hidden = false;
+    if (!loadingIndicator || !loadingText) {
+        console.error(
+            "Loading indicator or loading text element was not found."
+        );
+        return;
     }
+
+    loadingText.textContent = message || "Loading PDF...";
+
+    loadingIndicator.hidden = false;
+}
+
+hideLoading() {
+    const loadingIndicator = this.elements.loadingIndicator;
+
+    if (loadingIndicator) {
+        loadingIndicator.hidden = true;
+    }
+}
+
+showError(message) {
+    const element = this.elements.errorMessage;
+
+    if (!element) {
+        console.error("Error message element was not found.");
+        return;
+    }
+
+    element.textContent = message;
+    element.hidden = false;
+}
+
+clearError() {
+    const element = this.elements.errorMessage;
+
+    if (!element) {
+        return;
+    }
+
+    element.hidden = true;
+    element.textContent = "";
+} 
 
     hideLoading() {
         this.elements.loadingIndicator.hidden = true;
@@ -211,48 +251,54 @@ export class PdfUI {
         this.updateZoomLabel();
     }
 
-    toggleToolbar() {
-        const toolbar = this.elements.toolbarRows;
-        const button = this.elements.toggleToolbarButton;
-
-        const willShow = toolbar.hidden;
-
-        toolbar.hidden = !willShow;
-
-        button.setAttribute(
-            "aria-expanded",
-            String(willShow)
-        );
-
-        button.title = willShow
-            ? "Hide tools"
-            : "Show tools";
-
-        button.setAttribute(
-            "aria-label",
-            button.title
-        );
-
-        button.innerHTML = willShow
-            ? `
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="3" y="4" width="18" height="16" rx="2"/>
-                    <path d="M3 9h18"/>
-                    <path d="M8 9v11"/>
-                    <path d="M13 14h4"/>
-                    <path d="M13 17h4"/>
-                </svg>
-            `
-            : `
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="3" y="4" width="18" height="16" rx="2"/>
-                    <path d="M3 9h18"/>
-                    <path d="M8 9v11"/>
-                    <path d="m13 14 4-4"/>
-                    <path d="m17 10-4-4"/>
-                </svg>
-            `;
+   toggleToolbar() {
+    const toolbar = this.elements.toolbarRows;
+    const container = toolbar.parentElement;
+    const button = this.elements.toggleToolbarButton;
+    
+    const willShow = container.hidden;
+    
+    container.hidden = !willShow;
+    
+    toolbar.hidden = false;
+    
+    button.setAttribute(
+        "aria-expanded",
+        String(willShow)
+    );
+    
+    button.title = willShow ?
+        "Hide tools" :
+        "Show tools";
+    
+    button.setAttribute(
+        "aria-label",
+        button.title
+    );
+    
+    button.innerHTML = willShow ?
+        `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2"/>
+                <path d="M3 9h18"/>
+                <path d="M8 9v11"/>
+                <path d="M13 14h4"/>
+                <path d="M13 17h4"/>
+            </svg>
+        ` :
+        `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2"/>
+                <path d="M3 9h18"/>
+                <path d="m13 14 4-4"/>
+                <path d="m17 10-4-4"/>
+            </svg>
+        `;
+    
+    if (willShow && this.app.scrollbars) {
+        this.app.scrollbars.scheduleUpdate();
     }
+}
 
     toggleSidebar() {
         const sidebar = this.elements.sidebar;

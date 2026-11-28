@@ -17,7 +17,9 @@
     overflow: hidden;
 }
 
-/* TOP NAVIGATION */
+/* =========================================================
+   TOP NAVIGATION
+========================================================= */
 
 .topbar {
     width: 100%;
@@ -56,7 +58,9 @@
     justify-content: flex-end;
 }
 
-/* MAIN LAYOUT */
+/* =========================================================
+   MAIN LAYOUT
+========================================================= */
 
 .main-layout {
     flex: 1;
@@ -75,7 +79,10 @@
 .main-layout.sidebar-hidden {
     grid-template-columns: minmax(0, 1fr);
 }
-/* SIDEBAR */
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
 
 .sidebar {
     width: var(--sidebar-width);
@@ -196,7 +203,9 @@
     color: var(--text);
 }
 
-/* WORKSPACE */
+/* =========================================================
+   WORKSPACE
+========================================================= */
 
 .workspace {
     min-width: 0;
@@ -210,30 +219,299 @@
     background: #202b3a;
 }
 
-/* DOCUMENT STAGE */
+/* =========================================================
+   PDF DOCUMENT LAYOUT
+========================================================= */
+
+.pdf-document-layout {
+    position: relative;
+
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr) 18px;
+    grid-template-rows: minmax(0, 1fr) 18px;
+
+    flex: 1 1 auto;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+
+    overflow: hidden;
+}
+
+/* =========================================================
+   DOCUMENT VIEWPORT
+========================================================= */
 
 .document-stage {
     position: relative;
-    
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-    
+
+    grid-column: 1;
+    grid-row: 1;
+
     display: flex;
+
     align-items: flex-start;
     justify-content: flex-start;
-    
-    /*
-     * Keep vertical spacing, but do not add
-     * horizontal padding to the scrollable area.
-     */
+
+    width: 100%;
+    height: 100%;
+
+    min-width: 0;
+    min-height: 0;
+
     padding: 22px 0;
-    
+
     overflow: auto;
+
     overscroll-behavior: contain;
-    
-    scrollbar-gutter: stable;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+
+.document-stage::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* =========================================================
+   SCROLLBAR RAILS
+========================================================= */
+
+.pdf-scrollbar-rail {
+    position: relative;
+
+    display: flex;
+
+    align-items: stretch;
+    justify-content: stretch;
+
+    gap: 0;
+    padding: 0;
+    margin: 0;
+
+    box-sizing: border-box;
+
+    background: rgba(10, 16, 28, 0.35);
+
+    overflow: hidden;
+
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Vertical rail */
+
+.pdf-scrollbar-vertical-rail {
+    grid-column: 2;
+    grid-row: 1;
+
+    flex-direction: column;
+
+    width: 18px;
+    min-width: 18px;
+    min-height: 0;
+}
+
+/* Horizontal rail */
+
+.pdf-scrollbar-horizontal-rail {
+    grid-column: 1;
+    grid-row: 2;
+
+    flex-direction: row;
+
+    width: 100%;
+    height: 18px;
+    min-height: 18px;
+    min-width: 0;
+}
+
+/* Bottom-right corner */
+
+.pdf-scrollbar-corner {
+    grid-column: 2;
+    grid-row: 2;
+
+    background: rgba(10, 16, 28, 0.35);
+}
+
+/* =========================================================
+   SCROLLBAR ARROW BUTTONS
+========================================================= */
+
+.pdf-scrollbar-arrow {
+    appearance: none;
+    -webkit-appearance: none;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 18px;
+
+    width: 18px;
+    height: 18px;
+
+    min-width: 18px;
+    min-height: 18px;
+
+    margin: 0;
+    padding: 0;
+
+    box-sizing: border-box;
+
+    border: none;
+    border-radius: 2px;
+
+    background: rgba(145, 165, 195, 0.18);
+
+    color: #f0f5ff;
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1;
+
+    -webkit-text-stroke: 0.8px currentColor;
+
+    cursor: pointer;
+
+    touch-action: manipulation;
+
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.pdf-scrollbar-arrow:hover {
+    background: rgba(145, 165, 195, 0.32);
+    color: #ffffff;
+}
+
+.pdf-scrollbar-arrow:active {
+    background: rgba(145, 165, 195, 0.48);
+    color: #ffffff;
+}
+
+/* =========================================================
+   SCROLLBAR TRACK
+========================================================= */
+
+.pdf-scrollbar-track {
+    position: relative;
+
+    display: block;
+
+    flex: 1 1 0;
+
+    align-self: stretch;
+
+    width: 100%;
+    height: 100%;
+
+    min-width: 0;
+    min-height: 0;
+
+    margin: 0;
+    padding: 0;
+
+    box-sizing: border-box;
+
+    overflow: hidden;
+
+    background: rgba(145, 165, 195, 0.14);
+
+    border: none;
+    border-radius: 2px;
+
+    cursor: pointer;
+
+    touch-action: none;
+
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Vertical track fills the rail width */
+
+.pdf-scrollbar-vertical-rail .pdf-scrollbar-track {
+    width: 100%;
+    height: auto;
+
+    min-width: 100%;
+}
+
+/* Horizontal track fills the rail height */
+
+.pdf-scrollbar-horizontal-rail .pdf-scrollbar-track {
+    width: auto;
+    height: 100%;
+
+    min-height: 100%;
+}
+
+/* =========================================================
+   SCROLLBAR THUMB
+========================================================= */
+
+.pdf-scrollbar-thumb {
+    position: absolute;
+
+    display: block;
+
+    border-radius: 5px;
+
+    background: rgba(155, 177, 207, 0.75);
+
+    cursor: grab;
+
+    touch-action: none;
+
+    user-select: none;
+    -webkit-user-select: none;
+
+    transition: background 0.15s ease;
+}
+
+.pdf-scrollbar-thumb:hover {
+    background: rgba(190, 210, 238, 0.95);
+}
+
+.pdf-scrollbar-thumb:active,
+.pdf-scrollbar-thumb.is-dragging {
+    background: #d5e3f5;
+    cursor: grabbing;
+}
+
+/* Vertical thumb */
+
+.pdf-scrollbar-vertical-rail .pdf-scrollbar-thumb {
+    top: 0;
+    left: 50%;
+
+    width: 8px;
+
+    transform: translateX(-50%);
+}
+
+/* Horizontal thumb */
+
+.pdf-scrollbar-horizontal-rail .pdf-scrollbar-thumb {
+    top: 50%;
+    left: 0;
+
+    height: 8px;
+
+    transform: translateY(-50%);
+}
+
+/* =========================================================
+   CANVAS CONTAINER
+========================================================= */
 
 /*
    The canvas container must not be centered with
@@ -258,7 +536,7 @@
 
     box-shadow:
         0 5px 25px rgba(0, 0, 0, 0.35);
-} 
+}
 
 #pdfCanvas {
     display: block;
@@ -266,23 +544,28 @@
     max-width: none;
     height: auto;
 }
+
 /* =========================================================
    ANNOTATION LAYER
 ========================================================= */
+
 .annotation-layer {
     position: absolute;
     top: 0;
     left: 0;
-    
+
     width: 100%;
     height: 100%;
-    
+
     overflow: hidden;
-    
+
     pointer-events: none;
 }
 
-/* HIDDEN SIDEBAR */
+/* =========================================================
+   HIDDEN SIDEBAR
+========================================================= */
+
 .main-layout.sidebar-hidden .sidebar {
     display: none;
 }
@@ -293,9 +576,12 @@
     min-width: 0;
 }
 
-/* RESPONSIVE */
+/* =========================================================
+   RESPONSIVE
+========================================================= */
 
 @media (max-width: 760px) {
+
     :root {
         --sidebar-width: 105px;
         --topbar-height: 50px;
@@ -336,7 +622,40 @@
     }
 }
 
+@media (max-width: 600px) {
+
+    .pdf-document-layout {
+        grid-template-columns: minmax(0, 1fr) 16px;
+        grid-template-rows: minmax(0, 1fr) 16px;
+    }
+
+    .pdf-scrollbar-vertical-rail {
+        width: 16px;
+        min-width: 16px;
+    }
+
+    .pdf-scrollbar-horizontal-rail {
+        height: 16px;
+        min-height: 16px;
+    }
+
+    .pdf-scrollbar-arrow {
+        flex-basis: 16px;
+
+        width: 16px;
+        height: 16px;
+
+        min-width: 16px;
+        min-height: 16px;
+
+        font-size: 16px;
+
+        -webkit-text-stroke: 0.7px currentColor;
+    }
+}
+
 @media (max-width: 420px) {
+
     :root {
         --sidebar-width: 88px;
     }
@@ -355,5 +674,71 @@
 
     .document-stage {
         padding: 8px 0;
+    }
+}
+
+/* =========================================================
+   GLOBAL HIDDEN ELEMENTS
+========================================================= */
+
+[hidden] {
+    display: none !important;
+}
+/* =========================================================
+   TOOLBAR SCROLLBAR
+========================================================= */
+
+.toolbar-scroll-container {
+    width: 100%;
+    min-width: 0;
+    
+    display: flex;
+    flex-direction: column;
+    
+    flex: 0 0 auto;
+    
+    overflow: hidden;
+}
+
+.toolbar-scroll-container>.toolbar {
+    width: 100%;
+    min-width: 0;
+    
+    flex: 0 0 auto;
+    
+    overflow-x: auto;
+    overflow-y: hidden;
+    
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.toolbar-scroll-container>.toolbar::-webkit-scrollbar {
+    display: none;
+}
+
+.toolbar-scrollbar-rail {
+    width: 100%;
+    height: 18px;
+    min-height: 18px;
+    
+    flex: 0 0 18px;
+    
+    grid-column: auto;
+    grid-row: auto;
+    
+    display: flex;
+}
+
+.toolbar-scrollbar-rail:empty {
+    display: flex;
+}
+
+@media (max-width: 600px) {
+    .toolbar-scrollbar-rail {
+        height: 16px;
+        min-height: 16px;
+        
+        flex-basis: 16px;
     }
 }

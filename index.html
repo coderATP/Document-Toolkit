@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="assets/css/pdf-selection.css">
     <link rel="stylesheet" href="assets/css/zoom.css">
     <link rel="stylesheet" href="assets/css/toolbar.css">
+    <link rel="stylesheet" href="assets/css/pdf-selection-toolbar.css">
     <link rel="stylesheet" href="assets/css/text-formatter.css">
     <link rel="stylesheet" href="assets/css/page-pan.css">
     <link rel="stylesheet" href="assets/css/annotation-interactions.css">
@@ -151,11 +152,13 @@
 
         </header>
 
-        <section
-            id="toolbarRows"
-            class="toolbar"
-            aria-label="PDF editing tools"
-        >
+       <div class="toolbar-scroll-container">
+
+    <section
+        id="toolbarRows"
+        class="toolbar"
+        aria-label="PDF editing tools"
+    >
 
             <div class="toolbar-group">
 
@@ -361,7 +364,15 @@
 
             </div>
 
-        </section>
+            </section>
+
+    <div
+        id="toolbarHorizontalScrollbarRail"
+        class="pdf-scrollbar-rail pdf-scrollbar-horizontal-rail toolbar-scrollbar-rail"
+        aria-label="Toolbar horizontal scrollbar"
+    ></div>
+
+</div>
 
         <main class="main-layout">
 
@@ -481,57 +492,58 @@
                     </div>
                 </div>
 
-                <div class="document-stage" id="documentStage">
+               <div class="pdf-document-layout" id="pdfDocumentLayout">
 
-                    <div id="welcomeScreen" class="welcome-screen">
+    <div class="document-stage" id="documentStage">
 
-                        <div class="welcome-icon">PDF</div>
-
-                        <h2>Open a PDF</h2>
-
-                        <p>
-                            Select a PDF file to get started.
-                        </p>
-
-                        <button
-                            id="welcomeOpenButton"
-                            class="button button-primary"
-                            type="button"
-                        >
-                            Open PDF
-                        </button>
-
-                    </div>
-
-                    <div
-                        id="loadingIndicator"
-                        class="loading-indicator"
-                        hidden
-                    >
-                        <div class="spinner"></div>
-                        <span id="loadingText">Loading...</span>
-                    </div>
-
-                    <div
-                        id="errorMessage"
-                        class="error-message"
-                        hidden
-                    ></div>
-
-                    <div
-                        id="canvasContainer"
-                        class="canvas-container"
-                        hidden
-                    >
-                        <canvas id="pdfCanvas"></canvas>
-
-                        <div
-                            id="annotationLayer"
-                            class="annotation-layer"
-                        ></div>
-                    </div>
-
+        <div id="welcomeScreen" class="welcome-screen">
+            <div class="welcome-content">
+                <div class="welcome-icon">
+                    <i class="fas fa-file-pdf"></i>
                 </div>
+
+                <h2>Welcome to Document Toolkit</h2>
+
+                <p>
+                    Open a PDF document to get started.
+                </p>
+
+                <button id="welcomeOpenButton" class="btn btn-primary">
+                    <i class="fas fa-folder-open"></i>
+                    Open PDF
+                </button>
+            </div>
+        </div>
+
+       <div id="loadingIndicator" class="loading-indicator" hidden>
+    <div class="spinner"></div>
+    <p id="loadingText">Loading PDF...</p>
+</div>
+
+        <div id="errorMessage" class="error-message hidden"></div>
+
+        <div id="canvasContainer" class="canvas-container" hidden>
+            <canvas id="pdfCanvas"></canvas>
+            <div id="annotationLayer" class="annotation-layer"></div>
+        </div>
+
+    </div>
+
+    <div
+        class="pdf-scrollbar-rail pdf-scrollbar-vertical-rail"
+        id="verticalScrollbarRail"
+        aria-label="Vertical document scrollbar">
+    </div>
+
+    <div
+        class="pdf-scrollbar-rail pdf-scrollbar-horizontal-rail"
+        id="horizontalScrollbarRail"
+        aria-label="Horizontal document scrollbar">
+    </div>
+
+    <div class="pdf-scrollbar-corner" aria-hidden="true"></div>
+
+</div>
 
             </section>
 

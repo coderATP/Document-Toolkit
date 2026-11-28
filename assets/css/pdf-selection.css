@@ -5,46 +5,184 @@
     left: 0;
     overflow: visible;
     z-index: 4;
+
     pointer-events: none;
+
     user-select: none;
     -webkit-user-select: none;
 }
 
 .pdf-selection-highlight {
     position: absolute;
+
     background: rgba(50, 120, 255, 0.35);
+
     border-radius: 2px;
+
     pointer-events: none;
+
     user-select: none;
     -webkit-user-select: none;
 }
 
+/* Selection handles */
+
 .pdf-selection-handle {
     position: absolute;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #2878f0;
+
+    width: 22px;
+    height: 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-sizing: border-box;
+
     border: 2px solid #ffffff;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+    border-radius: 50%;
+
+    background: #2878f0;
+
+    box-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.28),
+        0 0 0 1px rgba(40, 120, 240, 0.25);
+
     transform: translate(-50%, 0);
+
     pointer-events: auto;
     touch-action: none;
-    z-index: 5;
+
+    z-index: 6;
+
     cursor: grab;
 }
 
 .pdf-selection-handle:active {
     cursor: grabbing;
+
+    transform:
+        translate(-50%, 0) scale(1.12);
+}
+
+.pdf-selection-handle-grip {
+    width: 5px;
+    height: 5px;
+
+    border-radius: 50%;
+
+    background: #ffffff;
+
+    opacity: 0.95;
+
+    pointer-events: none;
 }
 
 .pdf-selection-start {
-    border-top-left-radius: 3px;
+    border-bottom-left-radius: 5px;
 }
 
 .pdf-selection-end {
-    border-top-right-radius: 3px;
+    border-bottom-right-radius: 5px;
 }
+
+/* Character preview */
+
+.pdf-selection-preview {
+    position: absolute;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 74px;
+    min-height: 42px;
+
+    padding: 8px 11px;
+
+    box-sizing: border-box;
+
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 9px;
+
+    background: rgba(17, 25, 40, 0.97);
+
+    color: #ffffff;
+
+    font-family: monospace;
+    font-size: 21px;
+    font-weight: 600;
+
+    line-height: 1.2;
+    letter-spacing: 0;
+
+    white-space: pre;
+
+    box-shadow:
+        0 5px 18px rgba(0, 0, 0, 0.28),
+        0 1px 3px rgba(0, 0, 0, 0.18);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transform: translateY(4px) scale(0.96);
+
+    transition:
+        opacity 100ms ease,
+        transform 100ms ease,
+        visibility 100ms ease;
+
+    pointer-events: none;
+
+    z-index: 8;
+}
+
+.pdf-selection-preview-visible {
+    opacity: 1;
+    visibility: visible;
+
+    transform: translateY(0) scale(1);
+}
+
+.pdf-selection-preview-before,
+.pdf-selection-preview-after {
+    display: inline-block;
+    min-width: 0;
+}
+
+.pdf-selection-preview-before {
+    color: #ffffff;
+}
+
+.pdf-selection-preview-after {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.pdf-selection-preview-highlighted {
+    color: #ffffff;
+
+    background: rgba(47, 119, 255, 0.65);
+
+    border-radius: 2px;
+}
+
+.pdf-selection-preview-caret {
+    display: inline-block;
+
+    width: 2px;
+    height: 23px;
+
+    margin: 0 1px;
+
+    flex: 0 0 2px;
+
+    background: #ffd166;
+
+    border-radius: 2px;
+}
+
+/* Prevent native selection on touch devices.
+   Custom selection rendering is handled by PdfSelectionRenderer. */
 
 @media (pointer: coarse) {
     .pdf-text-layer {
@@ -58,10 +196,11 @@
         user-select: none;
     }
 }
+
 #annotationLayer {
     pointer-events: none;
 }
 
-#annotationLayer>* {
+#annotationLayer > * {
     pointer-events: auto;
 }

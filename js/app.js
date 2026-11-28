@@ -12,12 +12,14 @@ import {
 import {
     PdfSelectionRangeManager
 } from "./managers/pdf-selection-range-manager.js";
-
+import {
+    PdfSelectionToolbar
+} from "./managers/pdf-selection-toolbar.js";
 import {
     PdfSelectionRenderer
 } from "./managers/pdf-selection-renderer.js";
 import { PdfSelectionManager } from "./managers/pdf-selection-manager.js";
-
+import { PdfScrollbarManager } from "./managers/pdf-scrollbar-manager.js";
 import { PdfZoomManager } from "./managers/zoom-manager.js";
 
 import { PdfAnnotationManager } from "./annotations.js";
@@ -41,7 +43,7 @@ export class PdfEditorApp {
     
     this.toolbarManager =
         new PdfToolbarManager(this);
-    
+    this.scrollbars = new PdfScrollbarManager(this);
     this.document =
         new PdfDocumentManager(this);
     
@@ -63,11 +65,10 @@ export class PdfEditorApp {
     this.gesture =
         new PdfGestureManager(this);
     
-    this.annotations =
-        new PdfAnnotationManager(this);
-    
-    this.formatter =
-        new PdfTextFormatter(this);
+    this.annotations = new PdfAnnotationManager(this);
+this.formatter = new PdfTextFormatter(this);
+
+this.selectionToolbar = new PdfSelectionToolbar(this);
     
     this.annotationDrag =
         new PdfAnnotationDragManager(this);

@@ -399,3 +399,24 @@
 .toolbar-context-mode .text-formatter[hidden] {
     display: none !important;
 }
+.shared-toolbar {
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.shared-toolbar::-webkit-scrollbar {
+    height: 6px;
+}
+
+.shared-toolbar::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.shared-toolbar::-webkit-scrollbar-track {
+    background: transparent;
+}

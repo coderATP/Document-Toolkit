@@ -1,0 +1,194 @@
+
+/* =========================================================
+   PDF SELECTION TOOLBAR
+========================================================= */
+
+.pdf-selection-toolbar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+
+    width: max-content !important;
+    min-width: max-content !important;
+    max-width: none !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+
+    gap: 4px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   SELECTION TOOLBAR BUTTONS
+========================================================= */
+
+.pdf-selection-toolbar-button {
+    display: inline-flex !important;
+    flex: 0 0 59px !important;
+
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 59px !important;
+    min-width: 59px !important;
+    max-width: 59px !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+
+    gap: 3px !important;
+
+    padding: 4px 6px !important;
+    margin: 0 !important;
+
+    border: 1px solid transparent;
+    border-radius: 7px;
+
+    background: transparent;
+    color: var(--text);
+
+    font-size: 9px !important;
+    font-weight: 600 !important;
+
+    white-space: nowrap !important;
+
+    box-sizing: border-box !important;
+
+    transition:
+        background 0.15s,
+        border-color 0.15s;
+}
+
+
+/* =========================================================
+   TOOLBAR ICONS
+========================================================= */
+
+.pdf-selection-toolbar-button svg {
+    display: block !important;
+    flex: 0 0 20px !important;
+
+    width: 20px !important;
+    min-width: 20px !important;
+    max-width: 20px !important;
+
+    height: 20px !important;
+    min-height: 20px !important;
+    max-height: 20px !important;
+
+    fill: none !important;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+
+/* =========================================================
+   TOOLBAR LABELS
+========================================================= */
+
+.pdf-selection-toolbar-label {
+    display: block !important;
+    flex: 0 0 auto !important;
+
+    width: 100% !important;
+
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    line-height: 1.1 !important;
+
+    text-align: center !important;
+    white-space: nowrap !important;
+
+    color: inherit !important;
+}
+
+
+/* =========================================================
+   HOVER STATE
+========================================================= */
+
+.pdf-selection-toolbar-button:hover,
+.pdf-selection-toolbar-button.is-active {
+    background: var(--surface-hover);
+    border-color: var(--border);
+}
+
+
+/* =========================================================
+   HIDDEN CUSTOM COLOUR INPUT
+========================================================= */
+
+.pdf-selection-highlight-color-input {
+    position: fixed !important;
+
+    left: -10000px !important;
+    top: 0 !important;
+
+    width: 1px !important;
+    height: 1px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border: 0 !important;
+
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 760px) {
+    .pdf-selection-toolbar {
+        gap: 4px !important;
+    }
+
+    .pdf-selection-toolbar-button {
+        min-width: 59px !important;
+        min-height: 40px !important;
+        max-height: 42px !important;
+
+        padding: 3px 5px !important;
+        font-size: 9px !important;
+    }
+
+    .pdf-selection-toolbar-button svg {
+        width: 19px !important;
+        min-width: 19px !important;
+
+        height: 19px !important;
+        min-height: 19px !important;
+
+        flex-basis: 19px !important;
+    }
+}
+
+@media (max-width: 420px) {
+    .pdf-selection-toolbar {
+        gap: 3px !important;
+    }
+
+    .pdf-selection-toolbar-button {
+        min-width: 55px !important;
+        width: 55px !important;
+        flex-basis: 55px !important;
+
+        padding: 3px 4px !important;
+    }
+}

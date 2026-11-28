@@ -25,70 +25,129 @@ export class PdfSelectionRangeManager {
         );
     }
 
-    
-isPointInsideText(node, x, y) {
-    if (!node) {
-        return false;
-    }
+    isPointInsideText(node, x, y) {
+        if (!node) {
+            return false;
+        }
 
-    const textLayer = this.getTextLayer();
+        const textLayer = this.getTextLayer();
 
-    const element = node.nodeType === Node.ELEMENT_NODE
-        ? node
-        : node.parentElement;
+        const element = node.nodeType === Node.ELEMENT_NODE
+            ? node
+            : node.parentElement;
 
-    if (!element || !textLayer) {
-        return false;
-    }
+        if (!element || !textLayer) {
+            return false;
+        }
 
-    const textSpan = element.closest("span");
-
-    if (
-        !textSpan ||
-        !textLayer.contains(textSpan)
-    ) {
-        return false;
-    }
-
-    const rectangles = textSpan.getClientRects();
-
-    for (const rect of rectangles) {
-        const horizontalTolerance = 2;
+        const textSpan = element.closest("span");
 
         if (
-            x >= rect.left - horizontalTolerance &&
-            x <= rect.right + horizontalTolerance &&
-            y >= rect.top &&
-            y <= rect.bottom
+            !textSpan ||
+            !textLayer.contains(textSpan)
         ) {
-            return true;
+            return false;
         }
+
+        for (const rect of textSpan.getClientRects()) {
+            if (
+                x >= rect.left - 2 &&
+                x <= rect.right + 2 &&
+                y >= rect.top &&
+                y <= rect.bottom
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    return false;
-}
+    getSpanRangeAtPoint(x, y, target) {
+        const textLayer = this.getTextLayer();
 
-getPositionAtPoint(x, y) {
-    const positionLayer = this.app.selection.renderer.container;
-    const previousPointerEvents = [];
-
-    if (positionLayer) {
-        for (const handle of positionLayer.querySelectorAll(
-            ".pdf-selection-handle"
-        )) {
-            previousPointerEvents.push({
-                handle: handle,
-                value: handle.style.pointerEvents
-            });
-
-            handle.style.pointerEvents = "none";
+        if (!textLayer) {
+            return null;
         }
+
+        let element = document.elementFromPoint(x, y);
+
+        if (
+            !element ||
+            !textLayer.contains(element)
+        ) {
+            element = target;
+        }
+
+        if (!element || !element.closest) {
+            return null;
+        }
+
+        const span = element.closest("span");
+
+        if (
+            !span ||
+            !textLayer.contains(span)
+        ) {
+            return null;
+        }
+
+        let pointIsInsideSpan = false;
+
+        for (const rect of span.getClientRects()) {
+            if (
+                x >= rect.left &&
+                x <= rect.right &&
+                y >= rect.top &&
+                y <= rect.bottom
+            ) {
+                pointIsInsideSpan = true;
+                break;
+            }
+        }
+
+        if (!pointIsInsideSpan) {
+            return null;
+        }
+
+        const walker = document.createTreeWalker(
+            span,
+            NodeFilter.SHOW_TEXT
+        );
+
+        const textNodes = [];
+
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+
+            if (node.textContent.length > 0) {
+                textNodes.push(node);
+            }
+        }
+
+        if (textNodes.length === 0) {
+            return null;
+        }
+
+        const firstNode = textNodes[0];
+        const lastNode = textNodes[textNodes.length - 1];
+
+        const range = document.createRange();
+
+        range.setStart(firstNode, 0);
+
+        range.setEnd(
+            lastNode,
+            lastNode.textContent.length
+        );
+
+        return range;
     }
 
-    let node = null;
-    let offset = 0;
+    getCaretPosition(x, y) {
+        let node = null;
+        let offset = 0;
 
-    try {
         if (document.caretPositionFromPoint) {
             const position =
                 document.caretPositionFromPoint(x, y);
@@ -108,52 +167,252 @@ getPositionAtPoint(x, y) {
             }
         }
 
-    } finally {
-        for (const item of previousPointerEvents) {
-            item.handle.style.pointerEvents = item.value;
-        }
-    }
-
-    if (!node || !this.isTextLayerNode(node)) {
-        return null;
-    }
-
-    if (node.nodeType === Node.ELEMENT_NODE) {
-        const textNode = this.findTextNodeAtOffset(
-            node,
-            offset
-        );
-
-        if (!textNode) {
+        if (!node || !this.isTextLayerNode(node)) {
             return null;
         }
 
-        node = textNode;
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const result = this.findTextNodeAtOffset(
+                node,
+                offset
+            );
 
-        offset = Math.min(
-            offset,
-            node.textContent.length
+            if (!result) {
+                return null;
+            }
+
+            node = result.node;
+            offset = result.offset;
+        }
+
+        if (node.nodeType !== Node.TEXT_NODE) {
+            return null;
+        }
+
+        return {
+            node: node,
+            offset: Math.max(
+                0,
+                Math.min(offset, node.textContent.length)
+            )
+        };
+    }
+
+    getPositionAtPoint(x, y) {
+        const positionLayer =
+            this.app.selection.renderer.container;
+
+        const previousPointerEvents = [];
+
+        if (positionLayer) {
+            for (const handle of positionLayer.querySelectorAll(
+                ".pdf-selection-handle"
+            )) {
+                previousPointerEvents.push({
+                    handle: handle,
+                    value: handle.style.pointerEvents
+                });
+
+                handle.style.pointerEvents = "none";
+            }
+        }
+
+        let position = null;
+
+        try {
+            position = this.getCaretPosition(x, y);
+
+        } finally {
+            for (const item of previousPointerEvents) {
+                item.handle.style.pointerEvents =
+                    item.value;
+            }
+        }
+
+        if (!position) {
+            return null;
+        }
+
+        if (
+            !this.isPointInsideText(
+                position.node,
+                x,
+                y
+            )
+        ) {
+            return null;
+        }
+
+        return position;
+    }
+
+    getPositionAtPointForDrag(x, y, handleType) {
+        const directPosition =
+            this.getPositionAtPoint(x, y);
+
+        if (directPosition) {
+            return directPosition;
+        }
+
+        const textLayer = this.getTextLayer();
+
+        if (!textLayer) {
+            return null;
+        }
+
+        const spans = Array.from(
+            textLayer.querySelectorAll("span")
+        );
+
+        const lineCandidates = [];
+
+        for (const span of spans) {
+            const rect = span.getBoundingClientRect();
+
+            if (
+                rect.width <= 0 ||
+                rect.height <= 0 ||
+                !span.textContent
+            ) {
+                continue;
+            }
+
+            const verticalDistance =
+                y < rect.top
+                    ? rect.top - y
+                    : y > rect.bottom
+                        ? y - rect.bottom
+                        : 0;
+
+            lineCandidates.push({
+                span: span,
+                rect: rect,
+                verticalDistance: verticalDistance
+            });
+        }
+
+        if (lineCandidates.length === 0) {
+            return null;
+        }
+
+        let nearestVerticalDistance = Infinity;
+
+        for (const candidate of lineCandidates) {
+            nearestVerticalDistance = Math.min(
+                nearestVerticalDistance,
+                candidate.verticalDistance
+            );
+        }
+
+        const nearestCandidates =
+            lineCandidates.filter(candidate => {
+                return (
+                    candidate.verticalDistance <=
+                    nearestVerticalDistance + 2
+                );
+            });
+
+        if (nearestCandidates.length === 0) {
+            return null;
+        }
+
+        const lineTop = Math.min(
+            ...nearestCandidates.map(item => item.rect.top)
+        );
+
+        const lineCandidatesOnly =
+            nearestCandidates.filter(item => {
+                return Math.abs(item.rect.top - lineTop) <= 2;
+            });
+
+        lineCandidatesOnly.sort(
+            (first, second) => first.rect.left - second.rect.left
+        );
+
+        const first = lineCandidatesOnly[0];
+        const last =
+            lineCandidatesOnly[lineCandidatesOnly.length - 1];
+
+        if (!first || !last) {
+            return null;
+        }
+
+        if (x <= first.rect.left) {
+            return this.getSpanBoundaryPosition(
+                first.span,
+                "start"
+            );
+        }
+
+        if (x >= last.rect.right) {
+            return this.getSpanBoundaryPosition(
+                last.span,
+                "end"
+            );
+        }
+
+        let nearestSpan = null;
+        let nearestHorizontalDistance = Infinity;
+
+        for (const candidate of lineCandidatesOnly) {
+            let distance = 0;
+
+            if (x < candidate.rect.left) {
+                distance = candidate.rect.left - x;
+            } else if (x > candidate.rect.right) {
+                distance = x - candidate.rect.right;
+            }
+
+            if (distance < nearestHorizontalDistance) {
+                nearestHorizontalDistance = distance;
+                nearestSpan = candidate;
+            }
+        }
+
+        if (!nearestSpan) {
+            return null;
+        }
+
+        const middle =
+            (nearestSpan.rect.left + nearestSpan.rect.right) / 2;
+
+        return this.getSpanBoundaryPosition(
+            nearestSpan.span,
+            x <= middle ? "start" : "end"
         );
     }
 
-    if (node.nodeType !== Node.TEXT_NODE) {
-        return null;
-    }
+    getSpanBoundaryPosition(span, boundary) {
+        const walker = document.createTreeWalker(
+            span,
+            NodeFilter.SHOW_TEXT
+        );
 
-    // Reject caret positions returned for blank spaces.
-    // The pointer must actually be over the corresponding text span.
-    if (!this.isPointInsideText(node, x, y)) {
-        return null;
-    }
+        const textNodes = [];
 
-    return {
-        node: node,
-        offset: Math.max(
-            0,
-            Math.min(offset, node.textContent.length)
-        )
-    };
-}
+        while (walker.nextNode()) {
+            textNodes.push(walker.currentNode);
+        }
+
+        if (textNodes.length === 0) {
+            return null;
+        }
+
+        if (boundary === "start") {
+            return {
+                node: textNodes[0],
+                offset: 0
+            };
+        }
+
+        const lastNode =
+            textNodes[textNodes.length - 1];
+
+        return {
+            node: lastNode,
+            offset: lastNode.textContent.length
+        };
+    }
 
     findTextNodeAtOffset(element, offset) {
         const walker = document.createTreeWalker(
@@ -171,13 +430,23 @@ getPositionAtPoint(x, y) {
             lastNode = node;
 
             if (remaining <= length) {
-                return node;
+                return {
+                    node: node,
+                    offset: remaining
+                };
             }
 
             remaining -= length;
         }
 
-        return lastNode;
+        if (!lastNode) {
+            return null;
+        }
+
+        return {
+            node: lastNode,
+            offset: lastNode.textContent.length
+        };
     }
 
     getWordRange(position) {
@@ -297,10 +566,138 @@ getPositionAtPoint(x, y) {
                 node: range.startContainer,
                 offset: range.startOffset
             },
+
             end: {
                 node: range.endContainer,
                 offset: range.endOffset
             }
+        };
+    }
+
+    getLineSpansForPosition(position) {
+        if (!position || !position.node) {
+            return null;
+        }
+
+        const element = position.node.parentElement;
+
+        if (!element) {
+            return null;
+        }
+
+        const currentSpan = element.closest("span");
+        const textLayer = this.getTextLayer();
+
+        if (
+            !currentSpan ||
+            !textLayer ||
+            !textLayer.contains(currentSpan)
+        ) {
+            return null;
+        }
+
+        const currentRect =
+            currentSpan.getBoundingClientRect();
+
+        const spans = Array.from(
+            textLayer.querySelectorAll("span")
+        );
+
+        const lineSpans = [];
+
+        for (const span of spans) {
+            const rect = span.getBoundingClientRect();
+
+            if (
+                rect.width <= 0 ||
+                rect.height <= 0 ||
+                Math.abs(rect.top - currentRect.top) > 2
+            ) {
+                continue;
+            }
+
+            lineSpans.push({
+                span: span,
+                rect: rect
+            });
+        }
+
+        lineSpans.sort(
+            (first, second) => first.rect.left - second.rect.left
+        );
+
+        return lineSpans;
+    }
+
+    getPreviewContext(position) {
+        const lineSpans =
+            this.getLineSpansForPosition(position);
+
+        if (!lineSpans || lineSpans.length === 0) {
+            return null;
+        }
+
+        let lineText = "";
+        let absolutePosition = null;
+
+        for (const item of lineSpans) {
+            const walker = document.createTreeWalker(
+                item.span,
+                NodeFilter.SHOW_TEXT
+            );
+
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                const nodeText = node.textContent || "";
+
+                if (node === position.node) {
+                    absolutePosition =
+                        lineText.length +
+                        Math.max(
+                            0,
+                            Math.min(
+                                position.offset,
+                                nodeText.length
+                            )
+                        );
+                }
+
+                lineText += nodeText;
+            }
+        }
+
+        if (absolutePosition === null) {
+            return null;
+        }
+
+        const before =
+            lineText.slice(
+                Math.max(0, absolutePosition - 4),
+                absolutePosition
+            );
+
+        const after =
+            lineText.slice(
+                absolutePosition,
+                Math.min(
+                    lineText.length,
+                    absolutePosition + 4
+                )
+            );
+
+        let highlightSide = null;
+
+        if (absolutePosition === 0) {
+            highlightSide = "after";
+
+        } else if (absolutePosition === lineText.length) {
+            highlightSide = "before";
+        }
+
+        return {
+            before: before,
+            after: after,
+            highlightSide: highlightSide
         };
     }
 }

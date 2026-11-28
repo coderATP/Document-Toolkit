@@ -278,3 +278,28 @@
     border: 3px solid #123B78;
     outline: none;
 }
+
+
+/* =========================================================
+   PDF TEXT HIGHLIGHT
+========================================================= */
+
+.pdf-text-highlight {
+    position: absolute;
+    border-radius: 2px;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 0;
+    box-sizing: border-box;
+}
+
+/* =========================================================
+   SELECTED PDF TEXT HIGHLIGHT
+========================================================= */
+
+.pdf-text-highlight.selected-highlight {
+    border: 3px solid #123B78;
+    border-radius: 5px;
+    box-sizing: border-box;
+    z-index: 1;
+}

@@ -29,72 +29,104 @@ export class PdfGestureManager {
 
         this.previewZoom = 1;
 
+        this.resizeObserver = null;
+
         this.createSurface();
-        this.defaultStagePaddingRight =
-    parseFloat(
-        window.getComputedStyle(this.stage).paddingRight
-    ) || 0;
+
         this.bindEvents();
+
+        this.observeDimensions();
     }
 
-  createSurface() {
-    const existingSurface =
-        this.canvasContainer.parentElement;
-    
-    if (
-        existingSurface &&
-        existingSurface.classList.contains(
-            "pdf-zoom-surface"
-        )
-    ) {
-        this.surface = existingSurface;
-        return;
+    createSurface() {
+        const existingSurface =
+            this.canvasContainer.parentElement;
+
+        if (
+            existingSurface &&
+            existingSurface.classList.contains(
+                "pdf-zoom-surface"
+            )
+        ) {
+            this.surface = existingSurface;
+            return;
+        }
+
+        this.surface =
+            document.createElement("div");
+
+        this.surface.className =
+            "pdf-zoom-surface";
+
+        this.surface.style.position = "relative";
+        this.surface.style.display = "block";
+        this.surface.style.flex = "0 0 auto";
+        this.surface.style.width = "max-content";
+        this.surface.style.height = "max-content";
+        this.surface.style.margin = "0 auto";
+
+        this.canvasContainer.parentNode.insertBefore(
+            this.surface,
+            this.canvasContainer
+        );
+
+        this.surface.appendChild(
+            this.canvasContainer
+        );
     }
-    
-    this.surface =
-        document.createElement("div");
-    
-    this.surface.className =
-        "pdf-zoom-surface";
-    
-    this.surface.style.position = "relative";
-    this.surface.style.display = "block";
-    this.surface.style.flex = "0 0 auto";
-    this.surface.style.width = "max-content";
-    this.surface.style.height = "max-content";
-    this.surface.style.margin = "0 auto";
-    
-    this.canvasContainer.parentNode.insertBefore(
-        this.surface,
-        this.canvasContainer
-    );
-    
-    this.surface.appendChild(
-        this.canvasContainer
-    );
-}
 
     bindEvents() {
         /*
-         * Restrict browser-level pinch zoom to the
-         * document stage, not the entire application.
+         * Mouse interaction belongs exclusively to
+         * PdfSelectionManager.
+         *
+         * Do not register mouse-pan handlers here.
          */
-        this.stage.style.touchAction =
-            "pan-x pan-y";
+
+        this.stage.style.touchAction = "pan-x pan-y";
+
+        this.handleTouchStart = event => {
+            if (
+                event.touches.length !== 2 ||
+                !this.app.document.hasDocument
+            ) {
+                return;
+            }
+
+            this.beginPinch(event.touches);
+        };
+
+        this.handleTouchMove = event => {
+            if (
+                !this.isPinching ||
+                event.touches.length !== 2
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            this.updatePinch(event.touches);
+        };
+
+        this.handleTouchEnd = event => {
+            if (
+                this.isPinching &&
+                event.touches.length < 2
+            ) {
+                this.endPinch();
+            }
+        };
+
+        this.handleTouchCancel = () => {
+            if (this.isPinching) {
+                this.endPinch();
+            }
+        };
 
         this.stage.addEventListener(
             "touchstart",
-            function (event) {
-                if (
-                    event.touches.length !== 2 ||
-                    !this.app.document.hasDocument
-                ) {
-                    return;
-                }
-
-                this.beginPinch(event.touches);
-
-            }.bind(this),
+            this.handleTouchStart,
             {
                 passive: true,
                 capture: true
@@ -103,19 +135,7 @@ export class PdfGestureManager {
 
         this.stage.addEventListener(
             "touchmove",
-            function (event) {
-                if (
-                    !this.isPinching ||
-                    event.touches.length !== 2
-                ) {
-                    return;
-                }
-
-                event.preventDefault();
-
-                this.updatePinch(event.touches);
-
-            }.bind(this),
+            this.handleTouchMove,
             {
                 passive: false
             }
@@ -123,24 +143,42 @@ export class PdfGestureManager {
 
         this.stage.addEventListener(
             "touchend",
-            function (event) {
-                if (
-                    this.isPinching &&
-                    event.touches.length < 2
-                ) {
-                    this.endPinch();
-                }
-            }.bind(this)
+            this.handleTouchEnd
         );
 
         this.stage.addEventListener(
             "touchcancel",
-            function () {
-                if (this.isPinching) {
-                    this.endPinch();
-                }
-            }.bind(this)
+            this.handleTouchCancel
         );
+    }
+
+    observeDimensions() {
+        if (typeof ResizeObserver === "undefined") {
+            this.handleWindowResize = () => {
+                this.scheduleScrollbarUpdate();
+            };
+
+            window.addEventListener(
+                "resize",
+                this.handleWindowResize
+            );
+
+            return;
+        }
+
+        this.resizeObserver =
+            new ResizeObserver(() => {
+                this.scheduleScrollbarUpdate();
+            });
+
+        this.resizeObserver.observe(this.stage);
+        this.resizeObserver.observe(this.surface);
+    }
+
+    scheduleScrollbarUpdate() {
+        if (this.app.scrollbars) {
+            this.app.scrollbars.scheduleUpdate();
+        }
     }
 
     getDistance(touches) {
@@ -267,17 +305,9 @@ export class PdfGestureManager {
         const ratio =
             this.previewZoom / this.startZoom;
 
-        /*
-         * Scale only the PDF page.
-         * The surrounding application is untouched.
-         */
         this.canvasContainer.style.transform =
             "scale(" + ratio + ")";
 
-        /*
-         * The surface supplies the correct scrollable
-         * dimensions while the page is transformed.
-         */
         this.surface.style.width =
             this.startWidth * ratio + "px";
 
@@ -285,6 +315,8 @@ export class PdfGestureManager {
             this.startHeight * ratio + "px";
 
         this.keepFocalPoint();
+
+        this.scheduleScrollbarUpdate();
     }
 
     keepFocalPoint() {
@@ -336,10 +368,6 @@ export class PdfGestureManager {
             oldZoom: this.startZoom
         };
 
-        /*
-         * Remove the temporary preview before
-         * PDF.js performs its full-resolution render.
-         */
         this.resetPreview();
 
         try {
@@ -360,6 +388,7 @@ export class PdfGestureManager {
 
         } finally {
             this.clearGestureState();
+            this.scheduleScrollbarUpdate();
         }
     }
 
@@ -374,23 +403,30 @@ export class PdfGestureManager {
     }
 
     syncSurfaceSize() {
-    if (!this.surface || this.isPinching) {
-        return;
-    }
-    
-    const width =
-        this.app.ui.elements.pdfCanvas.offsetWidth;
-    
-    const height =
-        this.app.ui.elements.pdfCanvas.offsetHeight;
-    
-    this.canvasContainer.style.width = width + "px";
-    this.canvasContainer.style.height = height + "px";
-    
-    this.surface.style.width = width + "px";
-    this.surface.style.height = height + "px";
-}
+        if (!this.surface || this.isPinching) {
+            return;
+        }
 
+        const width =
+            this.app.ui.elements.pdfCanvas.offsetWidth;
+
+        const height =
+            this.app.ui.elements.pdfCanvas.offsetHeight;
+
+        this.canvasContainer.style.width =
+            width + "px";
+
+        this.canvasContainer.style.height =
+            height + "px";
+
+        this.surface.style.width =
+            width + "px";
+
+        this.surface.style.height =
+            height + "px";
+
+        this.scheduleScrollbarUpdate();
+    }
 
     applyFinalAnchor(anchor, finalZoom) {
         if (!anchor || !anchor.focalPoint) {
@@ -437,9 +473,51 @@ export class PdfGestureManager {
         this.isPinching = false;
 
         this.resetPreview();
+
         this.clearGestureState();
 
         this.surface.style.width = "fit-content";
         this.surface.style.height = "fit-content";
+
+        this.scheduleScrollbarUpdate();
+    }
+
+    destroy() {
+        this.reset();
+
+        this.stage.removeEventListener(
+            "touchstart",
+            this.handleTouchStart,
+            true
+        );
+
+        this.stage.removeEventListener(
+            "touchmove",
+            this.handleTouchMove
+        );
+
+        this.stage.removeEventListener(
+            "touchend",
+            this.handleTouchEnd
+        );
+
+        this.stage.removeEventListener(
+            "touchcancel",
+            this.handleTouchCancel
+        );
+
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+
+        if (this.handleWindowResize) {
+            window.removeEventListener(
+                "resize",
+                this.handleWindowResize
+            );
+
+            this.handleWindowResize = null;
+        }
     }
 }

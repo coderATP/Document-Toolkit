@@ -365,12 +365,52 @@ export class PdfOperations {
                 return lines;
             };
 
-            for (const annotation of annotations) {
-                if (annotation.type !== "text") {
-                    continue;
-                }
+            
+for (const annotation of annotations) {
+    const pageIndex = annotation.pageNumber - 1;
 
-                const pageIndex = annotation.pageNumber - 1;
+    if (
+        pageIndex < 0 ||
+        pageIndex >= pdf.getPageCount()
+    ) {
+        continue;
+    }
+
+    const page = pdf.getPage(pageIndex);
+
+    if (annotation.type === "highlight") {
+        const highlightColor = getPdfColor(
+            annotation.color,
+            "#ffeb3b"
+        );
+
+        const opacity = Math.max(
+            0,
+            Math.min(
+                1,
+                Number(annotation.opacity ?? 0.35)
+            )
+        );
+
+        for (const rectangle of annotation.rectangles || []) {
+            page.drawRectangle({
+                x: rectangle.x,
+                y: rectangle.y,
+                width: rectangle.width,
+                height: rectangle.height,
+                color: highlightColor,
+                opacity: opacity,
+                borderWidth: 0
+            });
+        }
+
+        continue;
+    }
+
+    if (annotation.type !== "text") {
+        continue;
+    }
+
 
                 if (
                     pageIndex < 0 ||
@@ -378,8 +418,6 @@ export class PdfOperations {
                 ) {
                     continue;
                 }
-
-                const page = pdf.getPage(pageIndex);
 
                 const fontSize =
                     Number(annotation.fontSize) || 12;

@@ -13,6 +13,10 @@ export class PdfSelectionRenderer {
             start: null,
             end: null
         };
+
+        this.preview = null;
+        this.previewBefore = null;
+        this.previewAfter = null;
     }
 
     createLayer(viewport) {
@@ -50,6 +54,10 @@ export class PdfSelectionRenderer {
             end: null
         };
 
+        this.preview = null;
+        this.previewBefore = null;
+        this.previewAfter = null;
+
         return layer;
     }
 
@@ -81,9 +89,15 @@ export class PdfSelectionRenderer {
                 : "Selection end"
         );
 
+        const grip = document.createElement("span");
+
+        grip.className = "pdf-selection-handle-grip";
+
+        handle.appendChild(grip);
+
         handle.addEventListener(
             "pointerdown",
-            (event) => {
+            event => {
                 this.onHandlePointerDown(event, type);
             }
         );
@@ -140,8 +154,11 @@ export class PdfSelectionRenderer {
         const endRange = range.cloneRange();
         endRange.collapse(false);
 
-        const startRect = startRange.getBoundingClientRect();
-        const endRect = endRange.getBoundingClientRect();
+        const startRect =
+            startRange.getBoundingClientRect();
+
+        const endRect =
+            endRange.getBoundingClientRect();
 
         this.handles.start.style.left =
             startRect.left - layerRect.left + "px";
@@ -156,6 +173,126 @@ export class PdfSelectionRenderer {
             endRect.bottom - layerRect.top + "px";
     }
 
+    createPreview() {
+        if (this.preview || !this.container) {
+            return;
+        }
+
+        const preview = document.createElement("div");
+
+        preview.className = "pdf-selection-preview";
+
+        preview.setAttribute("aria-hidden", "true");
+
+        const before = document.createElement("span");
+
+        before.className =
+            "pdf-selection-preview-before";
+
+        const caret = document.createElement("span");
+
+        caret.className =
+            "pdf-selection-preview-caret";
+
+        const after = document.createElement("span");
+
+        after.className =
+            "pdf-selection-preview-after";
+
+        preview.appendChild(before);
+        preview.appendChild(caret);
+        preview.appendChild(after);
+
+        this.container.appendChild(preview);
+
+        this.preview = preview;
+        this.previewBefore = before;
+        this.previewAfter = after;
+    }
+
+    updatePreview(context, clientX, clientY) {
+        if (!this.container || !context) {
+            this.hidePreview();
+            return;
+        }
+
+        this.createPreview();
+
+        if (!this.preview) {
+            return;
+        }
+
+        this.previewBefore.textContent =
+            context.before || "";
+
+        this.previewAfter.textContent =
+            context.after || "";
+
+        this.previewBefore.classList.toggle(
+            "pdf-selection-preview-highlighted",
+            context.highlightSide === "before"
+        );
+
+        this.previewAfter.classList.toggle(
+            "pdf-selection-preview-highlighted",
+            context.highlightSide === "after"
+        );
+
+        const layerRect =
+            this.container.getBoundingClientRect();
+
+        const previewWidth =
+            this.preview.offsetWidth;
+
+        const previewHeight =
+            this.preview.offsetHeight;
+
+        const pointerX =
+            clientX - layerRect.left;
+
+        const pointerY =
+            clientY - layerRect.top;
+
+        let left =
+            pointerX - previewWidth / 2;
+
+        const minimumLeft = 6;
+
+        const maximumLeft = Math.max(
+            minimumLeft,
+            layerRect.width - previewWidth - 6
+        );
+
+        left = Math.max(
+            minimumLeft,
+            Math.min(left, maximumLeft)
+        );
+
+        let top =
+            pointerY - previewHeight - 20;
+
+        if (top < 6) {
+            top = pointerY + 24;
+        }
+
+        this.preview.style.left = left + "px";
+        this.preview.style.top = top + "px";
+
+        this.preview.classList.add(
+            "pdf-selection-preview-visible"
+        );
+    }
+
+    hidePreview() {
+        if (!this.preview) {
+            return;
+        }
+
+        this.preview.classList.remove(
+            "pdf-selection-preview-visible"
+        );
+    }
+
     render(range, showHandles = false) {
         if (!this.container) {
             return;
@@ -165,6 +302,7 @@ export class PdfSelectionRenderer {
             this.updateHighlightElements([]);
 
             this.removeHandles();
+            this.hidePreview();
 
             return;
         }
@@ -220,5 +358,9 @@ export class PdfSelectionRenderer {
             start: null,
             end: null
         };
+
+        this.preview = null;
+        this.previewBefore = null;
+        this.previewAfter = null;
     }
 }
