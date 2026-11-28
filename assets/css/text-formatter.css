@@ -1,29 +1,27 @@
 
-/* =========================================================
-   PDF EDITOR
-   Contextual text formatter
-========================================================= */
-
 .text-formatter {
-    position: fixed;
-    z-index: 1000;
+    position: static;
 
-    max-width: calc(100vw - 16px);
+    width: max-content;
+    min-width: max-content;
+    max-width: none;
 
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 7px;
 
-    padding: 8px;
+    gap: 12px;
 
-    border: 1px solid #28528A;
-    border-radius: 9px;
+    padding: 0;
 
-    background: #102F5C;
+    border: none;
+    border-radius: 0;
 
-    box-shadow:
-        0 5px 20px rgba(0, 0, 0, 0.4);
+    background: transparent;
+    box-shadow: none;
+
+    z-index: auto;
 }
 
 .text-formatter[hidden] {
@@ -32,136 +30,299 @@
 
 .formatter-group {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    gap: 4px;
+
+    gap: 5px;
+
+    flex-shrink: 0;
 }
 
 .formatter-divider {
     width: 1px;
-    height: 25px;
+    height: 30px;
+
     flex-shrink: 0;
 
-    background: #365A88;
+    background: var(--border);
+}
+
+.formatter-size-control,
+.formatter-color-control {
+    min-height: 42px;
+
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 3px;
+
+    padding: 4px 8px;
+
+    border: 1px solid transparent;
+    border-radius: 7px;
+
+    background: transparent;
+    color: var(--text);
+
+    font-size: 10px;
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s,
+        border-color 0.15s;
+}
+
+.formatter-size-control:hover,
+.formatter-color-control:hover {
+    background: var(--surface-hover);
+    border-color: var(--border);
+}
+
+.formatter-size-control svg,
+.formatter-color-control svg {
+    width: 20px;
+    height: 20px;
+
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+
+    flex-shrink: 0;
+}
+
+.formatter-size-control span,
+.formatter-color-control span {
+    line-height: 1.1;
 }
 
 .formatter-font-size {
-    width: 55px;
-    height: 32px;
+    width: 52px;
+    height: 24px;
 
-    padding: 0 5px;
+    padding: 0 3px;
 
-    border: 1px solid #365A88;
-    border-radius: 5px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
 
     outline: none;
 
-    background: #091F40;
-    color: #FFFFFF;
+    background: var(--surface);
+    color: var(--text);
 
-    font-size: 12px;
-}
+    font-size: 11px;
+    font-weight: 600;
 
-.formatter-font-size:focus {
-    border-color: #20D9FF;
-}
-
-.formatter-text-color,
-.formatter-background-color {
-    width: 32px;
-    height: 32px;
-
-    padding: 3px;
-
-    border: 1px solid #365A88;
-    border-radius: 5px;
-
-    background: #091F40;
+    text-align: center;
 
     cursor: pointer;
 }
 
-.formatter-button {
-    width: 32px;
-    height: 32px;
+.formatter-font-size:focus {
+    border-color: var(--accent);
+}
 
-    display: grid;
-    place-items: center;
+.formatter-color-control {
+    position: relative;
+}
+
+.formatter-text-color,
+.formatter-background-color {
+    width: 27px;
+    height: 6px;
+
+    padding: 0;
+
+    border: none;
+    border-radius: 4px;
+
+    background: transparent;
+
+    cursor: pointer;
+}
+
+.formatter-text-color::-webkit-color-swatch-wrapper,
+.formatter-background-color::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.formatter-text-color::-webkit-color-swatch,
+.formatter-background-color::-webkit-color-swatch {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.formatter-text-color::-moz-color-swatch,
+.formatter-background-color::-moz-color-swatch {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.formatter-button {
+    min-width: 59px;
+    min-height: 42px;
+
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 3px;
+
+    padding: 4px 6px;
+
+    border: 1px solid transparent;
+    border-radius: 7px;
+
+    background: transparent;
+    color: var(--text);
+
+    font-size: 9px;
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s,
+        border-color 0.15s;
+}
+
+.formatter-button svg {
+    width: 20px;
+    height: 20px;
 
     flex-shrink: 0;
 
-    border: 1px solid #365A88;
-    border-radius: 5px;
-
-    background: #194477;
-    color: #FFFFFF;
-
-    font-size: 14px;
-    font-weight: 700;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-.formatter-button:hover {
-    background: #2563B8;
-    border-color: #4B83CA;
+.formatter-button span {
+    line-height: 1.1;
+}
+
+.formatter-button:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: var(--border);
 }
 
 .formatter-button.active {
-    border-color: #20D9FF;
-
-    background: #2563B8;
-
-    color: #FFFFFF;
-}
-
-.formatter-italic {
-    font-style: italic;
-}
-
-.formatter-underline {
-    text-decoration: underline;
-}
-
-.formatter-strike {
-    text-decoration: line-through;
-}
-
-.double-strike-icon {
-    position: relative;
-
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.double-strike-icon::after,
-.double-strike-icon::before {
-    content: "";
-
-    position: absolute;
-    left: -2px;
-    right: -2px;
-
-    height: 1px;
-
-    background: currentColor;
-}
-
-.double-strike-icon::before {
-    top: 45%;
-}
-
-.double-strike-icon::after {
-    top: 60%;
-}
-
-.formatter-clear-background {
-    font-size: 19px;
-    font-weight: 400;
+    background: #263b59;
+    border-color: #4c8dff;
+    color: #ffffff;
 }
 
 .formatter-delete {
-    color: #FF8888;
+    color: #ff8888;
 }
 
-.formatter-delete:hover {
-    border-color: #FF5555;
-    background: rgba(224, 82, 82, 0.2);
+.formatter-delete:hover:not(:disabled) {
+    background: rgba(224, 82, 82, 0.12);
+    border-color: rgba(224, 82, 82, 0.25);
+}
+
+@media (max-width: 760px) {
+    .text-formatter {
+        gap: 7px;
+    }
+
+    .formatter-divider {
+        height: 26px;
+    }
+
+    .formatter-button {
+        min-width: 55px;
+        min-height: 40px;
+
+        padding: 3px 5px;
+
+        font-size: 9px;
+    }
+
+    .formatter-button svg {
+        width: 19px;
+        height: 19px;
+    }
+
+    .formatter-size-control,
+    .formatter-color-control {
+        min-height: 40px;
+        padding: 3px 6px;
+    }
+}
+
+@media (max-width: 420px) {
+    .text-formatter {
+        gap: 5px;
+    }
+
+    .formatter-group {
+        gap: 3px;
+    }
+
+    .formatter-button {
+        min-width: 52px;
+        padding: 3px 4px;
+    }
+}
+.formatter-size-control {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 4px;
+    
+    min-height: auto;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+
+.formatter-font-size-button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    padding: 0;
+    
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    
+    background: var(--surface);
+    color: var(--text);
+    
+    font-size: 17px;
+    font-weight: 700;
+    
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.formatter-font-size-button:hover {
+    background: var(--surface-hover);
+    border-color: var(--accent);
+}
+.formatter-font-size-button svg {
+    width: 21px;
+    height: 21px;
+    flex-shrink: 0;
 }

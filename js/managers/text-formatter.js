@@ -1,550 +1,454 @@
 
-/* =========================================================
-   PDF EDITOR
-   Contextual text formatter
-========================================================= */
-
 export class PdfTextFormatter {
 
     constructor(app) {
         this.app = app;
-
         this.layer = app.ui.elements.annotationLayer;
-        this.stage = document.getElementById("documentStage");
+        this.toolbarManager = app.toolbarManager;
 
         this.toolbar = null;
 
-        this.observer = null;
+        this.fontSizeInput = null;
+        this.textColorInput = null;
+        this.backgroundColorInput = null;
+
+        this.formatButtons = {};
 
         this.createToolbar();
         this.bindEvents();
     }
 
-    /* =====================================================
-       CREATE TOOLBAR
-    ===================================================== */
-
     createToolbar() {
         this.toolbar = document.createElement("div");
-
         this.toolbar.className = "text-formatter";
-        this.toolbar.hidden = true;
 
-        this.toolbar.innerHTML = `
-            <div class="formatter-group">
+        this.createFontSizeControl();
 
-                <select
-                    class="formatter-font-size"
-                    aria-label="Font size"
-                    title="Font size"
-                >
-                    <option value="10">10</option>
-                    <option value="12">12</option>
-                    <option value="14">14</option>
-                    <option value="16">16</option>
-                    <option value="18">18</option>
-                    <option value="20">20</option>
-                    <option value="24">24</option>
-                    <option value="28">28</option>
-                    <option value="36">36</option>
-                    <option value="48">48</option>
-                </select>
+        this.addDivider();
 
-                <input
-                    type="color"
-                    class="formatter-text-color"
-                    aria-label="Text colour"
-                    title="Text colour"
-                    value="#000000"
-                >
+        this.createTextColorControl();
 
-                <input
-                    type="color"
-                    class="formatter-background-color"
-                    aria-label="Text background highlight"
-                    title="Text background highlight"
-                    value="#ffff00"
-                >
+        this.createBackgroundColorControl();
 
-                <button
-                    type="button"
-                    class="formatter-button formatter-clear-background"
-                    title="Remove background highlight"
-                    aria-label="Remove background highlight"
-                >
-                    <span>&#8709;</span>
-                </button>
+        this.addDivider();
 
-            </div>
+        this.createFormattingControls();
 
-            <div class="formatter-divider"></div>
+        this.addDivider();
 
-            <div class="formatter-group">
+        this.createActionControls();
 
-                <button
-                    type="button"
-                    class="formatter-button formatter-bold"
-                    title="Bold"
-                    aria-label="Bold"
-                >
-                    B
-                </button>
+        this.toolbarManager.registerMode(
+            "text-formatting",
+            this.toolbar
+        );
+    }
 
-                <button
-                    type="button"
-                    class="formatter-button formatter-italic"
-                    title="Italic"
-                    aria-label="Italic"
-                >
-                    <i>I</i>
-                </button>
+   createFontSizeControl() {
+    const group = document.createElement("div");
 
-                <button
-                    type="button"
-                    class="formatter-button formatter-underline"
-                    title="Underline"
-                    aria-label="Underline"
-                >
-                    <u>U</u>
-                </button>
+    group.className = "formatter-group formatter-size-control";
 
-                <button
-                    type="button"
-                    class="formatter-button formatter-strike"
-                    title="Strikethrough"
-                    aria-label="Strikethrough"
-                >
-                    <s>S</s>
-                </button>
+    this.fontSizeInput = document.createElement("input");
+    this.fontSizeInput.type = "hidden";
+    this.fontSizeInput.value = "16";
 
-                <button
-                    type="button"
-                    class="formatter-button formatter-double-strike"
-                    title="Double strikethrough"
-                    aria-label="Double strikethrough"
-                >
-                    <span class="double-strike-icon">S</span>
-                </button>
+    const decreaseButton = document.createElement("button");
 
-            </div>
+    decreaseButton.type = "button";
+    decreaseButton.className = "formatter-font-size-button";
+    decreaseButton.title = "Decrease font size";
+    decreaseButton.setAttribute("aria-label", "Decrease font size");
+    decreaseButton.textContent = "A−";
 
-            <div class="formatter-divider"></div>
+    const increaseButton = document.createElement("button");
 
-            <button
-                type="button"
-                class="formatter-button formatter-delete"
-                title="Delete textbox"
-                aria-label="Delete textbox"
-            >
-                &#10005;
-            </button>
+    increaseButton.type = "button";
+    increaseButton.className = "formatter-font-size-button";
+    increaseButton.title = "Increase font size";
+    increaseButton.setAttribute("aria-label", "Increase font size");
+    increaseButton.textContent = "A+";
+
+    decreaseButton.addEventListener("click", () => {
+        this.adjustFontSize(-2);
+    });
+
+    increaseButton.addEventListener("click", () => {
+        this.adjustFontSize(2);
+    });
+
+    group.appendChild(decreaseButton);
+    group.appendChild(increaseButton);
+    group.appendChild(this.fontSizeInput);
+
+    this.toolbar.appendChild(group);
+}
+adjustFontSize(change) {
+    if (this.app.annotations.selectedId === null) {
+        return;
+    }
+    
+    const currentSize = Number(
+        this.fontSizeInput.value || 16
+    );
+    
+    const newSize = Math.min(
+        72,
+        Math.max(8, currentSize + change)
+    );
+    
+    if (newSize === currentSize) {
+        return;
+    }
+    
+    this.app.annotations.setSelectedFontSize(newSize);
+    
+    this.syncSelection();
+}
+
+    createTextColorControl() {
+        const group = document.createElement("div");
+        group.className = "formatter-group";
+
+        const control = document.createElement("label");
+        control.className = "formatter-color-control";
+        control.title = "Text colour";
+
+        control.innerHTML = `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 19 9 5h2l5 14"/>
+                <path d="M6 14h8"/>
+            </svg>
+            <span>Text</span>
         `;
 
-        document.body.appendChild(this.toolbar);
-
-        this.fontSizeInput = this.getControl(
-            ".formatter-font-size"
+        this.textColorInput = document.createElement("input");
+        this.textColorInput.type = "color";
+        this.textColorInput.className = "formatter-text-color";
+        this.textColorInput.setAttribute(
+            "aria-label",
+            "Text colour"
         );
+        this.textColorInput.value =
+            this.app.ui.elements.textColor?.value || "#000000";
 
-        this.textColorInput = this.getControl(
-            ".formatter-text-color"
-        );
+        control.appendChild(this.textColorInput);
+        group.appendChild(control);
 
-        this.backgroundColorInput = this.getControl(
-            ".formatter-background-color"
-        );
-
-        this.clearBackgroundButton = this.getControl(
-            ".formatter-clear-background"
-        );
-
-        this.boldButton = this.getControl(
-            ".formatter-bold"
-        );
-
-        this.italicButton = this.getControl(
-            ".formatter-italic"
-        );
-
-        this.underlineButton = this.getControl(
-            ".formatter-underline"
-        );
-
-        this.strikeButton = this.getControl(
-            ".formatter-strike"
-        );
-
-        this.doubleStrikeButton = this.getControl(
-            ".formatter-double-strike"
-        );
-
-        this.deleteButton = this.getControl(
-            ".formatter-delete"
-        );
+        this.toolbar.appendChild(group);
     }
 
-    getControl(selector) {
-        return this.toolbar.querySelector(selector);
+    createBackgroundColorControl() {
+        const group = document.createElement("div");
+        group.className = "formatter-group";
+
+        const control = document.createElement("label");
+        control.className = "formatter-color-control";
+        control.title = "Text background colour";
+
+        control.innerHTML = `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 16.5 14.5 6l3.5 3.5L7.5 20H4z"/>
+                <path d="m12 8.5 3.5 3.5"/>
+                <path d="M3 21h18"/>
+            </svg>
+            <span>Background</span>
+        `;
+
+        this.backgroundColorInput = document.createElement("input");
+        this.backgroundColorInput.type = "color";
+        this.backgroundColorInput.className =
+            "formatter-background-color";
+
+        this.backgroundColorInput.setAttribute(
+            "aria-label",
+            "Text background colour"
+        );
+
+        this.backgroundColorInput.value = "#ffff00";
+
+        control.appendChild(this.backgroundColorInput);
+        group.appendChild(control);
+
+        this.toolbar.appendChild(group);
+
+        this.clearBackgroundButton = this.createButton(
+            "clear-background",
+            "Clear background",
+            "Clear BG",
+            `
+                <path d="m3 7 8-4 10 10-8 8L3 11z"/>
+                <path d="m11 3 10 10"/>
+                <path d="m7 11 6 6"/>
+                <path d="M3 21h18"/>
+            `
+        );
+
+        group.appendChild(this.clearBackgroundButton);
     }
 
-    /* =====================================================
-       EVENTS
-    ===================================================== */
+    createFormattingControls() {
+        const group = document.createElement("div");
+        group.className = "formatter-group";
+
+        this.addFormatButton(
+            group,
+            "bold",
+            "Bold",
+            `
+                <path d="M6 4h7a4 4 0 0 1 0 8H6z"/>
+                <path d="M6 12h8a4 4 0 0 1 0 8H6z"/>
+            `
+        );
+
+        this.addFormatButton(
+            group,
+            "italic",
+            "Italic",
+            `
+                <path d="M19 4h-9"/>
+                <path d="M14 20H5"/>
+                <path d="m14 4-4 16"/>
+            `
+        );
+
+        this.addFormatButton(
+            group,
+            "underline",
+            "Underline",
+            `
+                <path d="M7 4v7a5 5 0 0 0 10 0V4"/>
+                <path d="M5 21h14"/>
+            `
+        );
+
+        this.addFormatButton(
+            group,
+            "strikethrough",
+            "Strikethrough",
+            `
+                <path d="M5 12h14"/>
+                <path d="M17 6.5A5 5 0 0 0 8 5"/>
+                <path d="M7 17.5a5 5 0 0 0 9 1"/>
+            `
+        );
+
+        this.addFormatButton(
+            group,
+            "doubleStrikethrough",
+            "Double strikethrough",
+            `
+                <path d="M5 10h14"/>
+                <path d="M5 14h14"/>
+                <path d="M17 6.5A5 5 0 0 0 8 5"/>
+                <path d="M7 17.5a5 5 0 0 0 9 1"/>
+            `
+        );
+
+        this.toolbar.appendChild(group);
+    }
+
+    createActionControls() {
+        const group = document.createElement("div");
+        group.className = "formatter-group";
+
+        this.deleteButton = this.createButton(
+            "delete",
+            "Delete text annotation",
+            "Delete",
+            `
+                <path d="M3 6h18"/>
+                <path d="M8 6V4h8v2"/>
+                <path d="m19 6-1 14H6L5 6"/>
+                <path d="M10 11v5"/>
+                <path d="M14 11v5"/>
+            `,
+            true
+        );
+
+        group.appendChild(this.deleteButton);
+
+        this.toolbar.appendChild(group);
+    }
+
+    addDivider() {
+        const divider = document.createElement("div");
+        divider.className = "formatter-divider";
+
+        this.toolbar.appendChild(divider);
+    }
+
+    createButton(action, title, label, paths, danger = false) {
+        const button = document.createElement("button");
+
+        button.type = "button";
+
+        button.className =
+            "tool-button formatter-button" +
+            (danger ? " formatter-delete tool-danger" : "");
+
+        button.title = title;
+        button.setAttribute("aria-label", title);
+        button.dataset.action = action;
+
+        button.innerHTML = `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                ${paths}
+            </svg>
+            <span>${label}</span>
+        `;
+
+        return button;
+    }
+
+    addFormatButton(container, format, title, paths) {
+        const button = this.createButton(
+            format,
+            title,
+            title,
+            paths
+        );
+
+        button.dataset.format = format;
+
+        this.formatButtons[format] = button;
+
+        container.appendChild(button);
+    }
 
     bindEvents() {
-        this.bindToolbarEvents();
+        this.toolbar.addEventListener("pointerdown", event => {
+            event.stopPropagation();
+        });
 
-        this.layer.addEventListener(
-            "click",
-            event => {
-                if (
-                    event.target.closest(
-                        ".pdf-text-annotation"
-                    )
-                ) {
-                    requestAnimationFrame(() => {
-                        this.syncSelection();
-                    });
+        this.fontSizeInput.addEventListener("change", () => {
+            const fontSize = Number(this.fontSizeInput.value);
 
-                    return;
-                }
-
-                if (!this.app.annotations.isAddingText) {
-                    this.hide();
-                }
+            if (!Number.isFinite(fontSize) || fontSize <= 0) {
+                return;
             }
-        );
 
-        this.layer.addEventListener(
-            "input",
-            event => {
-                if (
-                    event.target.closest(
-                        ".pdf-text-content"
-                    )
-                ) {
-                    requestAnimationFrame(() => {
-                        this.updatePosition();
-                    });
-                }
-            }
-        );
+            this.app.annotations.setSelectedFontSize(fontSize);
+            this.syncSelection();
+        });
 
-        if (this.stage) {
-            this.stage.addEventListener(
-                "scroll",
-                this.updatePosition.bind(this)
+        this.textColorInput.addEventListener("input", () => {
+            this.app.annotations.setSelectedTextColor(
+                this.textColorInput.value
             );
-        }
+        });
 
-        window.addEventListener(
-            "resize",
-            this.updatePosition.bind(this)
-        );
+        this.backgroundColorInput.addEventListener("input", () => {
+            this.app.annotations.setSelectedBackgroundColor(
+                this.backgroundColorInput.value
+            );
+        });
 
-        this.observer = new MutationObserver(
-            () => {
-                this.syncSelection();
+        this.clearBackgroundButton.addEventListener("click", () => {
+            this.app.annotations.setSelectedBackgroundColor(
+                "transparent"
+            );
+
+            this.syncSelection();
+        });
+
+        Object.entries(this.formatButtons).forEach(
+            ([format, button]) => {
+                button.addEventListener("click", () => {
+                    this.toggleFormat(format);
+                });
             }
         );
 
-        this.observer.observe(
-            this.layer,
-            {
-                childList: true,
-                subtree: true,
-                attributes: true,
-                attributeFilter: ["class"]
-            }
-        );
-
-        // Do not allow formatter interaction to bubble
-        // into the document or page-pan handlers.
-        this.toolbar.addEventListener(
-            "pointerdown",
-            event => {
-                event.stopPropagation();
-            }
-        );
+        this.deleteButton.addEventListener("click", () => {
+            this.app.annotations.deleteSelected();
+            this.hide();
+        });
     }
-
-    bindToolbarEvents() {
-        this.fontSizeInput.addEventListener(
-            "change",
-            () => {
-                this.app.annotations.setSelectedFontSize(
-                    this.fontSizeInput.value
-                );
-
-                this.syncSelection();
-            }
-        );
-
-        this.textColorInput.addEventListener(
-            "input",
-            () => {
-                this.app.annotations.setSelectedTextColor(
-                    this.textColorInput.value
-                );
-            }
-        );
-
-        this.backgroundColorInput.addEventListener(
-            "input",
-            () => {
-                this.app.annotations.setSelectedBackgroundColor(
-                    this.backgroundColorInput.value
-                );
-            }
-        );
-
-        this.clearBackgroundButton.addEventListener(
-            "click",
-            () => {
-                this.app.annotations.setSelectedBackgroundColor(
-                    "transparent"
-                );
-
-                this.syncSelection();
-            }
-        );
-
-        this.boldButton.addEventListener(
-            "click",
-            () => this.toggleFormat("bold")
-        );
-
-        this.italicButton.addEventListener(
-            "click",
-            () => this.toggleFormat("italic")
-        );
-
-        this.underlineButton.addEventListener(
-            "click",
-            () => this.toggleFormat("underline")
-        );
-
-        this.strikeButton.addEventListener(
-            "click",
-            () => this.toggleFormat("strikethrough")
-        );
-
-        this.doubleStrikeButton.addEventListener(
-            "click",
-            () => this.toggleFormat("doubleStrikethrough")
-        );
-
-        this.deleteButton.addEventListener(
-            "click",
-            () => {
-                this.app.annotations.deleteSelected();
-                this.hide();
-            }
-        );
-    }
-
-    /* =====================================================
-       FORMATTING
-    ===================================================== */
 
     toggleFormat(format) {
-        const annotation =
-            this.app.annotations.findAnnotation(
-                this.app.annotations.selectedId
-            );
+        const annotation = this.app.annotations.findAnnotation(
+            this.app.annotations.selectedId
+        );
 
         if (!annotation) {
             return;
         }
 
+        const nextValue = !Boolean(annotation[format]);
+
         this.app.annotations.setSelectedFormatting(
             format,
-            !annotation[format]
+            nextValue
         );
 
         this.syncSelection();
     }
 
-    /* =====================================================
-       SELECTION
-    ===================================================== */
-
     syncSelection() {
-        if (!this.toolbar) {
-            return;
-        }
+        const selectedId = this.app.annotations.selectedId;
 
-        const selected = this.layer.querySelector(
-            ".pdf-text-annotation.selected"
-        );
-
-        if (!selected) {
+        if (!selectedId) {
             this.hide();
             return;
         }
 
-        const annotation =
-            this.app.annotations.findAnnotation(
-                this.app.annotations.selectedId
-            );
+        const annotation = this.app.annotations.findAnnotation(
+            selectedId
+        );
 
         if (!annotation) {
             this.hide();
             return;
         }
 
-        this.fontSizeInput.value =
-            String(annotation.fontSize || 12);
-
-        this.textColorInput.value =
-            annotation.color || "#000000";
-
-        this.backgroundColorInput.value =
-            this.isValidColor(annotation.backgroundColor)
-                ? annotation.backgroundColor
-                : "#ffff00";
-
-        this.setActive(
-            this.boldButton,
-            annotation.bold
+        this.fontSizeInput.value = String(
+            annotation.fontSize || 16
         );
 
-        this.setActive(
-            this.italicButton,
-            annotation.italic
+        if (this.isValidColor(annotation.color)) {
+            this.textColorInput.value = annotation.color;
+        }
+
+        if (this.isValidColor(annotation.backgroundColor)) {
+            this.backgroundColorInput.value =
+                annotation.backgroundColor;
+        }
+
+        Object.entries(this.formatButtons).forEach(
+            ([format, button]) => {
+                const isActive = Boolean(annotation[format]);
+
+                button.classList.toggle("active", isActive);
+
+                button.setAttribute(
+                    "aria-pressed",
+                    String(isActive)
+                );
+            }
         );
 
-        this.setActive(
-            this.underlineButton,
-            annotation.underline
-        );
-
-        this.setActive(
-            this.strikeButton,
-            annotation.strikethrough
-        );
-
-        this.setActive(
-            this.doubleStrikeButton,
-            annotation.doubleStrikethrough
-        );
-
-        this.toolbar.hidden = false;
-
-        this.updatePosition();
+        this.toolbarManager.showMode("text-formatting");
     }
 
-    setActive(button, active) {
-        button.classList.toggle(
-            "active",
-            Boolean(active)
-        );
+    isValidColor(color) {
+        if (!color || color === "transparent") {
+            return false;
+        }
 
-        button.setAttribute(
-            "aria-pressed",
-            String(Boolean(active))
-        );
+        return /^#[0-9a-f]{6}$/i.test(color);
     }
-
-    isValidColor(value) {
-        return (
-            typeof value === "string" &&
-            /^#[0-9a-f]{6}$/i.test(value)
-        );
-    }
-
-    /* =====================================================
-       POSITIONING
-    ===================================================== */
-
-   
-updatePosition() {
-    if (
-        !this.toolbar ||
-        this.toolbar.hidden
-    ) {
-        return;
-    }
-
-    const selected = this.layer.querySelector(
-        ".pdf-text-annotation.selected"
-    );
-
-    if (!selected) {
-        this.hide();
-        return;
-    }
-
-    const rect = selected.getBoundingClientRect();
-
-    // Get the position of the move and rotate controls.
-    const controls = selected.querySelector(
-        ".pdf-text-controls"
-    );
-
-    const controlsRect = controls
-        ? controls.getBoundingClientRect()
-        : null;
-
-    const toolbarRect =
-        this.toolbar.getBoundingClientRect();
-
-    const margin = 8;
-
-    let left =
-        rect.left +
-        rect.width / 2 -
-        toolbarRect.width / 2;
-
-    // Position the formatter above the move and rotate icons.
-    let top = controlsRect
-        ? controlsRect.top - toolbarRect.height - margin
-        : rect.top - toolbarRect.height - margin;
-
-    // If there isn't enough room above, place it below the textbox.
-    if (top < margin) {
-        top = rect.bottom + margin;
-    }
-
-    left = Math.max(
-        margin,
-        Math.min(
-            left,
-            window.innerWidth -
-            toolbarRect.width -
-            margin
-        )
-    );
-
-    top = Math.max(
-        margin,
-        Math.min(
-            top,
-            window.innerHeight -
-            toolbarRect.height -
-            margin
-        )
-    );
-
-    this.toolbar.style.left = left + "px";
-    this.toolbar.style.top = top + "px";
-}
-
-
-    /* =====================================================
-       VISIBILITY
-    ===================================================== */
 
     hide() {
-        if (this.toolbar) {
-            this.toolbar.hidden = true;
+        if (
+            this.toolbarManager.getActiveMode() === "text-formatting"
+        ) {
+            this.toolbarManager.showDefault();
         }
     }
 
     destroy() {
-        if (this.observer) {
-            this.observer.disconnect();
-        }
+        this.hide();
 
         if (this.toolbar) {
             this.toolbar.remove();

@@ -17,122 +17,89 @@ export class PdfAnnotationManager {
         this.bindEvents();
     }
 
-    bindEvents() {
-        const el = this.app.ui.elements;
-        const layer = el.annotationLayer;
+    
+bindEvents() {
+    const el = this.app.ui.elements;
+    const layer = el.annotationLayer;
 
-        el.addTextButton.addEventListener(
-            "click",
-            this.toggleTextMode.bind(this)
+    el.addTextButton.addEventListener(
+        "click",
+        this.toggleTextMode.bind(this)
+    );
+
+    layer.addEventListener("input", event => {
+        const content = event.target.closest(
+            ".pdf-text-content"
         );
 
-        el.textFontSize.addEventListener(
-            "change",
-            this.updateSelectedFormatting.bind(this)
+        if (!content) {
+            return;
+        }
+
+        const annotation = this.findAnnotation(
+            content.dataset.id
         );
 
-        el.textColor.addEventListener(
-            "input",
-            this.updateSelectedFormatting.bind(this)
+        if (annotation) {
+            annotation.text = content.innerText;
+        }
+    });
+
+    layer.addEventListener("click", event => {
+        if (Date.now() < this.suppressTextClickUntil) {
+            return;
+        }
+
+        const content = event.target.closest(
+            ".pdf-text-content"
         );
 
-        el.textBoldButton.addEventListener(
-            "click",
-            () => this.toggleFormatting("bold")
+        if (!content) {
+            return;
+        }
+
+        const wrapper = content.closest(
+            ".pdf-text-annotation"
         );
 
-        el.textItalicButton.addEventListener(
-            "click",
-            () => this.toggleFormatting("italic")
-        );
+        if (!wrapper) {
+            return;
+        }
 
-        el.deleteTextButton.addEventListener(
-            "click",
-            this.deleteSelected.bind(this)
-        );
-
-        layer.addEventListener("input", event => {
-            const content = event.target.closest(
-                ".pdf-text-content"
-            );
-
-            if (!content) {
-                return;
-            }
-
-            const annotation = this.findAnnotation(
-                content.dataset.id
-            );
-
-            if (annotation) {
-                annotation.text = content.innerText;
-            }
-        });
-
-        layer.addEventListener("click", event => {
-            if (Date.now() < this.suppressTextClickUntil) {
-                return;
-            }
-
-            const content = event.target.closest(
-                ".pdf-text-content"
-            );
-
-            if (!content) {
-                return;
-            }
-
-            const wrapper = content.closest(
-                ".pdf-text-annotation"
-            );
-
-            if (!wrapper) {
-                return;
-            }
-
-            this.selectAnnotation(
-                wrapper.dataset.id,
-                false,
-                true
-            );
-        });
-
-        document.addEventListener(
-            "pointerdown",
-            event => {
-                if (this.selectedId === null) {
-                    return;
-                }
-
-                const target = event.target;
-
-                if (target.closest(".pdf-text-content")) {
-                    return;
-                }
-
-                if (target.closest(".text-formatter")) {
-                    return;
-                }
-
-                if (target.closest("#addTextButton")) {
-                    return;
-                }
-
-                if (
-                    target.closest(".pdf-text-move") ||
-                    target.closest(".pdf-text-rotate") ||
-                    target.closest(".pdf-text-resize")
-                ) {
-                    return;
-                }
-
-                this.suppressTextClickUntil = Date.now() + 600;
-
-                this.deselectAnnotation();
-            },
+        this.selectAnnotation(
+            wrapper.dataset.id,
+            false,
             true
         );
-    }
+    });
+
+    document.addEventListener(
+        "pointerdown",
+        event => {
+            if (this.selectedId === null) {
+                return;
+            }
+
+            const target = event.target;
+
+            if (
+                target.closest("#toolbarRows") ||
+                target.closest(".pdf-text-content") ||
+                target.closest(".pdf-text-move") ||
+                target.closest(".pdf-text-rotate") ||
+                target.closest(".pdf-text-resize")
+            ) {
+                return;
+            }
+
+            this.suppressTextClickUntil = Date.now() + 600;
+
+            this.deselectAnnotation();
+        },
+        true
+    );
+}
+
 
     toggleTextMode() {
         if (!this.app.document.pdfDocument) {
@@ -155,70 +122,77 @@ export class PdfAnnotationManager {
         });
     }
 
-    createTextAt(event) {
-        const layer = this.app.ui.elements.annotationLayer;
-        const rect = layer.getBoundingClientRect();
+    
+createTextAt(event) {
+    const layer = this.app.ui.elements.annotationLayer;
+    const rect = layer.getBoundingClientRect();
 
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
 
-        const fontSize = Number(
-            this.app.ui.elements.textFontSize.value
-        );
+    const fontSize = Number(
+        this.app.formatter?.fontSizeInput?.value ||
+        this.app.ui.elements.textFontSize.value ||
+        16
+    );
 
-        const viewport = this.getCurrentViewport();
+    const color =
+        this.app.formatter?.textColorInput?.value ||
+        this.app.ui.elements.textColor.value ||
+        "#000000";
 
-        const pdfPoint = viewport.convertToPdfPoint(
-            x,
-            y + fontSize * viewport.scale
-        );
+    const viewport = this.getCurrentViewport();
 
-        const annotation = this.addAnnotation(
-            this.app.document.currentPage,
-            {
-                type: "text",
-                text: "Type here",
+    const pdfPoint = viewport.convertToPdfPoint(
+        x,
+        y + fontSize * viewport.scale
+    );
 
-                x: pdfPoint[0],
-                y: pdfPoint[1],
+    const annotation = this.addAnnotation(
+        this.app.document.currentPage,
+        {
+            type: "text",
+            text: "Type here",
 
-                fontSize: fontSize,
-                color: this.app.ui.elements.textColor.value,
+            x: pdfPoint[0],
+            y: pdfPoint[1],
 
-                width: null,
-                height: null,
+            fontSize: fontSize,
+            color: color,
 
-                rotation: 0,
+            width: null,
+            height: null,
 
-                bold: false,
-                italic: false,
-                underline: false,
+            rotation: 0,
 
-                strikethrough: false,
-                doubleStrikethrough: false,
+            bold: false,
+            italic: false,
+            underline: false,
 
-                backgroundColor: "transparent"
-            }
-        );
+            strikethrough: false,
+            doubleStrikethrough: false,
 
-        this.isAddingText = false;
+            backgroundColor: "transparent"
+        }
+    );
 
-        this.app.ui.elements.addTextButton.classList.remove(
-            "active"
-        );
+    this.isAddingText = false;
 
-        this.app.ui.elements.addTextButton.textContent =
-            "Add Text";
+    this.app.ui.elements.addTextButton.classList.remove(
+        "active"
+    );
 
-        layer.style.cursor = "default";
+    this.app.ui.elements.addTextButton.textContent =
+        "Add Text";
 
-        this.selectAnnotation(
-            annotation.id,
-            true,
-            false
-        );
-    }
+    layer.style.cursor = "default";
 
+    this.selectAnnotation(
+        annotation.id,
+        true,
+        false
+    );
+}
     addAnnotation(pageNumber, annotation) {
         if (
             !Number.isInteger(pageNumber) ||
@@ -633,24 +607,28 @@ export class PdfAnnotationManager {
         }
     }
 
-    syncLayer(pageNumber, viewport) {
-        const layer = this.app.ui.elements.annotationLayer;
-        const canvas = this.app.ui.elements.pdfCanvas;
-
-        if (!layer || !canvas || !viewport) {
-            return;
-        }
-
-        layer.style.width = canvas.width + "px";
-        layer.style.height = canvas.height + "px";
-
-        layer.dataset.page = pageNumber;
-
-        this.currentPage = pageNumber;
-        this.currentViewport = viewport;
-
-        this.renderPageAnnotations();
+   syncLayer(pageNumber, viewport) {
+    const layer =
+        this.app.ui.elements.annotationLayer;
+    
+    if (!layer || !viewport) {
+        return;
     }
+    
+    /*
+     * Use PDF viewport dimensions, not canvas pixel-buffer
+     * dimensions. The canvas buffer is DPR-scaled.
+     */
+    layer.style.width = viewport.width + "px";
+    layer.style.height = viewport.height + "px";
+    
+    layer.dataset.page = pageNumber;
+    
+    this.currentPage = pageNumber;
+    this.currentViewport = viewport;
+    
+    this.renderPageAnnotations();
+}
 
     renderPageAnnotations() {
         const layer = this.app.ui.elements.annotationLayer;

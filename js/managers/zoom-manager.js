@@ -5,119 +5,79 @@ export class PdfZoomManager {
 
     constructor(app) {
         this.app = app;
-
-        this.isPinching = false;
-        this.pinchStartDistance = 0;
-        this.pinchStartZoom = 1;
-
-        this.lastFocalPoint = null;
-
-        this.bindEvents();
     }
 
-    bindEvents() {
-        const stage = this.app.ui.elements.documentStage;
+    captureAnchor(focalPoint, oldZoom) {
+        if (!focalPoint) {
+            return null;
+        }
 
-        stage.addEventListener(
-            "touchstart",
-            function (event) {
-                if (
-                    event.touches.length !== 2 ||
-                    !this.app.document.hasDocument
-                ) {
-                    return;
-                }
+        const stage =
+            this.app.ui.elements.documentStage;
 
-                this.isPinching = true;
+        const canvas =
+            this.app.ui.elements.pdfCanvas;
 
-                this.pinchStartDistance =
-                    this.getTouchDistance(event.touches);
+        const rect =
+            canvas.getBoundingClientRect();
 
-                this.pinchStartZoom =
-                    this.app.document.zoom;
+        if (
+            rect.width <= 0 ||
+            rect.height <= 0
+        ) {
+            return null;
+        }
 
-                this.lastFocalPoint =
-                    this.getTouchCenter(event.touches);
+        const stageRect =
+            stage.getBoundingClientRect();
 
-            }.bind(this),
-            { passive: true }
-        );
-
-        stage.addEventListener(
-            "touchmove",
-            function (event) {
-                if (
-                    !this.isPinching ||
-                    event.touches.length !== 2
-                ) {
-                    return;
-                }
-
-                event.preventDefault();
-
-                const distance =
-                    this.getTouchDistance(event.touches);
-
-                if (this.pinchStartDistance <= 0) {
-                    return;
-                }
-
-                const ratio =
-                    distance / this.pinchStartDistance;
-
-                const newZoom =
-                    this.pinchStartZoom * ratio;
-
-                const focalPoint =
-                    this.getTouchCenter(event.touches);
-
-                this.setZoom(newZoom, focalPoint);
-
-            }.bind(this),
-            { passive: false }
-        );
-
-        stage.addEventListener(
-            "touchend",
-            function (event) {
-                if (event.touches.length < 2) {
-                    this.isPinching = false;
-                    this.pinchStartDistance = 0;
-                }
-            }.bind(this)
-        );
-
-        stage.addEventListener(
-            "touchcancel",
-            function () {
-                this.isPinching = false;
-                this.pinchStartDistance = 0;
-            }.bind(this)
-        );
-    }
-
-    getTouchDistance(touches) {
-        const dx =
-            touches[0].clientX - touches[1].clientX;
-
-        const dy =
-            touches[0].clientY - touches[1].clientY;
-
-        return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    getTouchCenter(touches) {
         return {
-            x: (
-                touches[0].clientX +
-                touches[1].clientX
-            ) / 2,
+            pageX:
+                focalPoint.x - rect.left,
 
-            y: (
-                touches[0].clientY +
-                touches[1].clientY
-            ) / 2
+            pageY:
+                focalPoint.y - rect.top,
+
+            focalPoint: {
+                x: focalPoint.x,
+                y: focalPoint.y
+            },
+
+            oldZoom: oldZoom,
+
+            stageLeft: stageRect.left,
+            stageTop: stageRect.top
         };
+    }
+
+    applyAnchor(anchor, newZoom) {
+        if (!anchor) {
+            return;
+        }
+
+        const stage =
+            this.app.ui.elements.documentStage;
+
+        const canvas =
+            this.app.ui.elements.pdfCanvas;
+
+        const rect =
+            canvas.getBoundingClientRect();
+
+        const ratio =
+            newZoom / anchor.oldZoom;
+
+        const targetX =
+            rect.left + anchor.pageX * ratio;
+
+        const targetY =
+            rect.top + anchor.pageY * ratio;
+
+        stage.scrollLeft +=
+            targetX - anchor.focalPoint.x;
+
+        stage.scrollTop +=
+            targetY - anchor.focalPoint.y;
     }
 
     async setZoom(value, focalPoint = null) {
@@ -135,45 +95,32 @@ export class PdfZoomManager {
             )
         );
 
-        if (Math.abs(newZoom - document.zoom) < 0.002) {
+        if (
+            Math.abs(newZoom - document.zoom) < 0.002
+        ) {
             return;
         }
 
         const stage =
             this.app.ui.elements.documentStage;
 
-        const canvas =
-            this.app.ui.elements.pdfCanvas;
-
-        let anchor = null;
-
-        if (focalPoint && canvas.width > 0) {
-            const stageRect =
+        if (!focalPoint) {
+            const rect =
                 stage.getBoundingClientRect();
 
-            const canvasRect =
-                canvas.getBoundingClientRect();
-
-            anchor = {
-                screenX: focalPoint.x - stageRect.left,
-                screenY: focalPoint.y - stageRect.top,
-
-                pageX: focalPoint.x - canvasRect.left,
-                pageY: focalPoint.y - canvasRect.top,
-
-                contentX:
-                    canvasRect.left -
-                    stageRect.left +
-                    stage.scrollLeft,
-
-                contentY:
-                    canvasRect.top -
-                    stageRect.top +
-                    stage.scrollTop,
-
-                oldZoom: document.zoom
+            focalPoint = {
+                x: rect.left + stage.clientWidth / 2,
+                y: rect.top + stage.clientHeight / 2
             };
         }
+
+        const oldZoom = document.zoom;
+
+        const anchor =
+            this.captureAnchor(
+                focalPoint,
+                oldZoom
+            );
 
         document.zoom = newZoom;
 
@@ -181,23 +128,14 @@ export class PdfZoomManager {
 
         await this.app.renderer.renderCurrentPage();
 
-        if (anchor) {
-            const ratio = newZoom / anchor.oldZoom;
-
-            const newCanvasX =
-                anchor.contentX +
-                anchor.pageX * (ratio - 1);
-
-            const newCanvasY =
-                anchor.contentY +
-                anchor.pageY * (ratio - 1);
-
-            stage.scrollLeft =
-                newCanvasX - anchor.screenX;
-
-            stage.scrollTop =
-                newCanvasY - anchor.screenY;
+        if (this.app.gesture) {
+            this.app.gesture.syncSurfaceSize();
         }
+
+        this.applyAnchor(
+            anchor,
+            newZoom
+        );
     }
 
     async zoomIn() {
@@ -219,9 +157,8 @@ export class PdfZoomManager {
     }
 
     reset() {
-        this.isPinching = false;
-        this.pinchStartDistance = 0;
-        this.pinchStartZoom = 1;
-        this.lastFocalPoint = null;
+        if (this.app.gesture) {
+            this.app.gesture.reset();
+        }
     }
 }

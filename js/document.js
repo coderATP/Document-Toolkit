@@ -141,53 +141,78 @@ export class PdfDocumentManager {
         );
     }
 
-    async fitToWidth() {
-        if (!this.pdfDocument) {
-            return;
-        }
-
-        const page = await this.pdfDocument.getPage(
-            this.currentPage
-        );
-
-        const baseViewport = page.getViewport({
-            scale: 1
-        });
-
-        const stage = this.app.ui.elements.documentStage;
-
-        const availableWidth = Math.max(
-            100,
-            stage.clientWidth - 32
-        );
-
-        const availableHeight = Math.max(
-            100,
-            stage.clientHeight - 32
-        );
-
-        const widthScale =
-            availableWidth /
-            (baseViewport.width * PDF_CONFIG.renderScale);
-
-        const heightScale =
-            availableHeight /
-            (baseViewport.height * PDF_CONFIG.renderScale);
-
-        const fitZoom = Math.max(
-            PDF_CONFIG.minimumZoom,
-            Math.min(
-                widthScale,
-                heightScale,
-                PDF_CONFIG.maximumZoom
-            )
-        );
-
-        await this.app.zoom.setZoom(fitZoom);
-
-        stage.scrollTop = 0;
-        stage.scrollLeft = 0;
+  async fitToWidth() {
+    if (!this.pdfDocument) {
+        return;
     }
+    
+    const page = await this.pdfDocument.getPage(
+        this.currentPage
+    );
+    
+    const stage = this.app.ui.elements.documentStage;
+    
+    if (!stage) {
+        return;
+    }
+    
+    const baseViewport = page.getViewport({
+        scale: 1
+    });
+    
+    const stageStyles = window.getComputedStyle(stage);
+    
+    const paddingLeft = parseFloat(
+        stageStyles.paddingLeft
+    ) || 0;
+    
+    const paddingRight = parseFloat(
+        stageStyles.paddingRight
+    ) || 0;
+    
+    const paddingTop = parseFloat(
+        stageStyles.paddingTop
+    ) || 0;
+    
+    const paddingBottom = parseFloat(
+        stageStyles.paddingBottom
+    ) || 0;
+    
+    const availableWidth =
+        stage.clientWidth -
+        paddingLeft -
+        paddingRight;
+    
+    const availableHeight =
+        stage.clientHeight -
+        paddingTop -
+        paddingBottom;
+    
+    if (availableWidth <= 0 || availableHeight <= 0) {
+        return;
+    }
+    
+    const widthScale =
+        availableWidth /
+        (baseViewport.width * PDF_CONFIG.renderScale);
+    
+    const heightScale =
+        availableHeight /
+        (baseViewport.height * PDF_CONFIG.renderScale);
+    
+    const fitZoom = Math.max(
+        PDF_CONFIG.minimumZoom,
+        Math.min(
+            PDF_CONFIG.maximumZoom,
+            widthScale
+        )
+    );
+    
+    await this.app.zoom.setZoom(fitZoom);
+    
+    stage.scrollLeft = 0;
+    stage.scrollTop = 0;
+}
 
     cancelCurrentRender() {
         this.renderSequence++;
@@ -214,76 +239,121 @@ export class PdfRenderer {
         this.app = app;
     }
 
-    async renderCurrentPage() {
-        const manager = this.app.document;
+ 
 
-        if (!manager.pdfDocument) {
+async renderCurrentPage() {
+    const manager = this.app.document;
+
+    if (!manager.pdfDocument) {
+        return;
+    }
+
+    manager.cancelCurrentRender();
+
+    this.app.selection.clear();
+    this.app.textLayer.clear();
+
+    const sequence = manager.renderSequence;
+    const pageNumber = manager.currentPage;
+
+    try {
+        const page = await manager.pdfDocument.getPage(
+            pageNumber
+        );
+
+        if (sequence !== manager.renderSequence) {
             return;
         }
 
-        manager.cancelCurrentRender();
+        const viewport = page.getViewport({
+            scale:
+                PDF_CONFIG.renderScale *
+                manager.zoom
+        });
 
-        const sequence = manager.renderSequence;
-        const pageNumber = manager.currentPage;
+        const canvas = this.app.ui.elements.pdfCanvas;
+        const context = canvas.getContext("2d");
 
-        try {
-            const page = await manager.pdfDocument.getPage(
-                pageNumber
-            );
+        // Use a higher backing resolution on high-density screens.
+        const outputScale = Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
 
-            if (sequence !== manager.renderSequence) {
-                return;
-            }
+        // Set the actual canvas pixel resolution.
+        canvas.width = Math.ceil(
+            viewport.width * outputScale
+        );
 
-            const viewport = page.getViewport({
-                scale:
-                    PDF_CONFIG.renderScale *
-                    manager.zoom
-            });
+        canvas.height = Math.ceil(
+            viewport.height * outputScale
+        );
 
-            const canvas = this.app.ui.elements.pdfCanvas;
-            const context = canvas.getContext("2d");
+        // Preserve the original PDF viewport dimensions on screen.
+        canvas.style.width = viewport.width + "px";
+        canvas.style.height = viewport.height + "px";
 
-            canvas.width = Math.ceil(viewport.width);
-            canvas.height = Math.ceil(viewport.height);
+        const renderTask = page.render({
+            canvasContext: context,
+            viewport: viewport,
+            transform: [
+                outputScale,
+                0,
+                0,
+                outputScale,
+                0,
+                0
+            ]
+        });
 
-            const renderTask = page.render({
-                canvasContext: context,
-                viewport: viewport
-            });
+        manager.renderTask = renderTask;
 
-            manager.renderTask = renderTask;
+        await renderTask.promise;
 
-            await renderTask.promise;
-
-            if (sequence !== manager.renderSequence) {
-                return;
-            }
-
-            manager.renderTask = null;
-
-            this.currentViewport = viewport;
-
-            this.app.annotations.syncLayer(
-                pageNumber,
-                viewport
-            );
-
-        } catch (error) {
-            if (
-                error &&
-                error.name === "RenderingCancelledException"
-            ) {
-                return;
-            }
-
-            console.error("PDF rendering error:", error);
-
-            this.app.ui.showError(
-                "The page could not be rendered."
-            );
+        if (sequence !== manager.renderSequence) {
+            return;
         }
+
+        manager.renderTask = null;
+
+        this.currentViewport = viewport;
+
+        await this.app.textLayer.render(
+    page,
+    viewport
+);
+
+if (sequence !== manager.renderSequence) {
+    return;
+}
+
+this.app.selection.sync(viewport);
+
+        this.app.annotations.syncLayer(
+            pageNumber,
+            viewport
+        );
+        if (this.app.gesture) {
+    this.app.gesture.syncSurfaceSize();
+}
+
+    } catch (error) {
+        if (
+            error &&
+            error.name === "RenderingCancelledException"
+        ) {
+            return;
+        }
+
+        console.error("PDF rendering error:", error);
+
+        this.app.ui.showError(
+            "The page could not be rendered."
+        );
     }
+}
+
+
 
     async renderThumbnail(pageNumber, canvas) {
         const page = await this.app.document.pdfDocument.getPage(

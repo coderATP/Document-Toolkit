@@ -353,3 +353,49 @@
 .pdf-text-annotation.selected .pdf-text-move {
     opacity: 1;
 }
+/* =========================================================
+   SHARED CONTEXTUAL TOOLBAR
+========================================================= */
+
+.toolbar-mode {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.toolbar-context-container {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 12px;
+    min-width: 0;
+}
+
+.toolbar-mode[hidden],
+.toolbar-context-container[hidden] {
+    display: none !important;
+}
+
+.toolbar-context-mode {
+    width: 100%;
+}
+
+.toolbar-context-mode .text-formatter {
+    position: static;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 12px;
+    transform: none;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    margin: 0;
+    z-index: auto;
+}
+
+.toolbar-context-mode .text-formatter[hidden] {
+    display: none !important;
+}

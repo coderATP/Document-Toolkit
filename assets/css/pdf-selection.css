@@ -1,0 +1,67 @@
+
+.pdf-selection-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: visible;
+    z-index: 4;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.pdf-selection-highlight {
+    position: absolute;
+    background: rgba(50, 120, 255, 0.35);
+    border-radius: 2px;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.pdf-selection-handle {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #2878f0;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+    touch-action: none;
+    z-index: 5;
+    cursor: grab;
+}
+
+.pdf-selection-handle:active {
+    cursor: grabbing;
+}
+
+.pdf-selection-start {
+    border-top-left-radius: 3px;
+}
+
+.pdf-selection-end {
+    border-top-right-radius: 3px;
+}
+
+@media (pointer: coarse) {
+    .pdf-text-layer {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    .pdf-text-layer span {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+}
+#annotationLayer {
+    pointer-events: none;
+}
+
+#annotationLayer>* {
+    pointer-events: auto;
+}

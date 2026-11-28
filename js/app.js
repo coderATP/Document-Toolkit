@@ -1,11 +1,22 @@
-
+import { PdfToolbarManager } from "./managers/toolbar-manager.js";
 import { PdfUI } from "./ui.js";
-
+import { PdfTextLayerManager } from "./managers/pdf-text-layer-manager.js"; 
 import {
     PdfDocumentManager,
     PdfRenderer,
     ThumbnailManager
 } from "./document.js";
+import {
+    PdfGestureManager
+} from "./managers/pdf-gesture-manager.js";
+import {
+    PdfSelectionRangeManager
+} from "./managers/pdf-selection-range-manager.js";
+
+import {
+    PdfSelectionRenderer
+} from "./managers/pdf-selection-renderer.js";
+import { PdfSelectionManager } from "./managers/pdf-selection-manager.js";
 
 import { PdfZoomManager } from "./managers/zoom-manager.js";
 
@@ -25,33 +36,60 @@ import { PdfOperations } from "./operations.js";
 
 export class PdfEditorApp {
 
-    constructor() {
-        this.ui = new PdfUI(this);
-
-        this.document = new PdfDocumentManager(this);
-        this.renderer = new PdfRenderer(this);
-        this.thumbnails = new ThumbnailManager(this);
-
-        this.zoom = new PdfZoomManager(this);
-
-        this.annotations = new PdfAnnotationManager(this);
-
-        this.formatter = new PdfTextFormatter(this);
-
-        this.annotationDrag = new PdfAnnotationDragManager(this);
-        this.annotationRotate = new PdfAnnotationRotateManager(this);
-        this.annotationResize = new PdfAnnotationResizeManager(this);
-
-        this.pagePan = new PdfPagePanManager(this);
-
-        this.operations = new PdfOperations(this);
-
-        this.mergeFiles = [];
-
-        this.bindEvents();
-
-        this.ui.updateControls();
-    }
+   constructor() {
+    this.ui = new PdfUI(this);
+    
+    this.toolbarManager =
+        new PdfToolbarManager(this);
+    
+    this.document =
+        new PdfDocumentManager(this);
+    
+    this.renderer =
+        new PdfRenderer(this);
+    
+    this.textLayer =
+        new PdfTextLayerManager(this);
+    
+    this.selection =
+        new PdfSelectionManager(this);
+    
+    this.thumbnails =
+        new ThumbnailManager(this);
+    
+    this.zoom =
+        new PdfZoomManager(this);
+    
+    this.gesture =
+        new PdfGestureManager(this);
+    
+    this.annotations =
+        new PdfAnnotationManager(this);
+    
+    this.formatter =
+        new PdfTextFormatter(this);
+    
+    this.annotationDrag =
+        new PdfAnnotationDragManager(this);
+    
+    this.annotationRotate =
+        new PdfAnnotationRotateManager(this);
+    
+    this.annotationResize =
+        new PdfAnnotationResizeManager(this);
+    
+    this.pagePan =
+        new PdfPagePanManager(this);
+    
+    this.operations =
+        new PdfOperations(this);
+    
+    this.mergeFiles = [];
+    
+    this.bindEvents();
+    
+    this.ui.updateControls();
+}
 
     bindEvents() {
         const el = this.ui.elements;
@@ -164,7 +202,7 @@ export class PdfEditorApp {
         if (!this.document.hasDocument) {
             return;
         }
-
+        this.zoom.reset(); 
         const confirmed = confirm(
             "Close the current PDF project?"
         );
