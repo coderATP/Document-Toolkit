@@ -47,6 +47,11 @@ export class PdfAnnotationRenderer {
                 return;
             }
 
+            if (annotation.type === "drawing") {
+                this.renderDrawing(annotation, layer);
+                return;
+            }
+
             if (annotation.type !== "text") {
                 return;
             }
@@ -59,77 +64,165 @@ export class PdfAnnotationRenderer {
         });
     }
 
-renderHighlight(annotation, layer) {
-    const highlightColor =
-        annotation.color || "#ffeb3b";
-    
-    // All highlights use exactly 70% opacity.
-    const opacity = 0.7;
-    
-    // Convert the selected colour to RGBA.
-    const colorMatch = highlightColor.match(
-        /^#([0-9a-f]{6})$/i
-    );
-    
-    let backgroundColor = highlightColor;
-    
-    if (colorMatch) {
-        const hex = colorMatch[1];
-        
-        const red = parseInt(hex.substring(0, 2), 16);
-        const green = parseInt(hex.substring(2, 4), 16);
-        const blue = parseInt(hex.substring(4, 6), 16);
-        
-        backgroundColor =
-            `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+    renderHighlight(annotation, layer) {
+        const highlightColor =
+            annotation.color || "#ffeb3b";
+
+        const opacity = 0.7;
+
+        const colorMatch = highlightColor.match(
+            /^#([0-9a-f]{6})$/i
+        );
+
+        let backgroundColor = highlightColor;
+
+        if (colorMatch) {
+            const hex = colorMatch[1];
+
+            const red = parseInt(hex.substring(0, 2), 16);
+            const green = parseInt(hex.substring(2, 4), 16);
+            const blue = parseInt(hex.substring(4, 6), 16);
+
+            backgroundColor =
+                `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+        }
+
+        (annotation.rectangles || []).forEach(rectangle => {
+            const firstPoint =
+                this.currentViewport.convertToViewportPoint(
+                    rectangle.x,
+                    rectangle.y
+                );
+
+            const secondPoint =
+                this.currentViewport.convertToViewportPoint(
+                    rectangle.x + rectangle.width,
+                    rectangle.y + rectangle.height
+                );
+
+            const highlight = document.createElement("div");
+
+            highlight.className = "pdf-text-highlight";
+
+            highlight.dataset.id = annotation.id;
+            highlight.dataset.page = annotation.pageNumber;
+
+            highlight.style.position = "absolute";
+
+            highlight.style.left =
+                Math.min(firstPoint[0], secondPoint[0]) + "px";
+
+            highlight.style.top =
+                Math.min(firstPoint[1], secondPoint[1]) + "px";
+
+            highlight.style.width =
+                Math.abs(secondPoint[0] - firstPoint[0]) + "px";
+
+            highlight.style.height =
+                Math.abs(secondPoint[1] - firstPoint[1]) + "px";
+
+            highlight.style.backgroundColor = backgroundColor;
+            highlight.style.opacity = "1";
+
+            highlight.style.pointerEvents = "auto";
+            highlight.style.cursor = "pointer";
+
+            layer.appendChild(highlight);
+        });
     }
-    
-    (annotation.rectangles || []).forEach(rectangle => {
-        const firstPoint =
-            this.currentViewport.convertToViewportPoint(
-                rectangle.x,
-                rectangle.y
-            );
-        
-        const secondPoint =
-            this.currentViewport.convertToViewportPoint(
-                rectangle.x + rectangle.width,
-                rectangle.y + rectangle.height
-            );
-        
-        const highlight = document.createElement("div");
-        
-        highlight.className = "pdf-text-highlight";
-        
-        highlight.dataset.id = annotation.id;
-        highlight.dataset.page = annotation.pageNumber;
-        
-        highlight.style.position = "absolute";
-        
-        highlight.style.left =
-            Math.min(firstPoint[0], secondPoint[0]) + "px";
-        
-        highlight.style.top =
-            Math.min(firstPoint[1], secondPoint[1]) + "px";
-        
-        highlight.style.width =
-            Math.abs(secondPoint[0] - firstPoint[0]) + "px";
-        
-        highlight.style.height =
-            Math.abs(secondPoint[1] - firstPoint[1]) + "px";
-        
-        // Apply transparency to the background only.
-        highlight.style.backgroundColor = backgroundColor;
-        
-        // Keep the element itself fully opaque.
-        highlight.style.opacity = "1";
-        
-        highlight.style.pointerEvents = "auto";
-        highlight.style.cursor = "pointer";
-        
-        layer.appendChild(highlight);
-    });
-}
+
+    renderDrawing(annotation, layer) {
+        const points = annotation.points || [];
+
+        if (points.length === 0) {
+            return;
+        }
+
+        const svgNamespace =
+            "http://www.w3.org/2000/svg";
+
+        const svg = document.createElementNS(
+            svgNamespace,
+            "svg"
+        );
+
+        svg.setAttribute("width", "100%");
+        svg.setAttribute("height", "100%");
+        svg.setAttribute(
+            "viewBox",
+            `0 0 ${this.currentViewport.width} ${this.currentViewport.height}`
+        );
+
+        svg.style.position = "absolute";
+        svg.style.left = "0";
+        svg.style.top = "0";
+        svg.style.width = "100%";
+        svg.style.height = "100%";
+        svg.style.overflow = "visible";
+        svg.style.pointerEvents = "none";
+
+        const path = document.createElementNS(
+            svgNamespace,
+            "path"
+        );
+
+        let pathData = "";
+
+        points.forEach((point, index) => {
+            const viewportPoint =
+                this.currentViewport.convertToViewportPoint(
+                    point.x,
+                    point.y
+                );
+
+            if (index === 0) {
+                pathData +=
+                    `M ${viewportPoint[0]} ${viewportPoint[1]}`;
+
+            } else {
+                pathData +=
+                    ` L ${viewportPoint[0]} ${viewportPoint[1]}`;
+            }
+        });
+
+        path.setAttribute("d", pathData);
+
+        path.setAttribute(
+            "fill",
+            "none"
+        );
+
+        path.setAttribute(
+            "stroke",
+            annotation.color || "#123B78"
+        );
+
+        const thickness = Number(annotation.thickness);
+
+        const safeThickness =
+            Number.isFinite(thickness) && thickness > 0
+                ? thickness
+                : 3;
+
+        path.setAttribute(
+            "stroke-width",
+            String(safeThickness * this.currentViewport.scale)
+        );
+
+        path.setAttribute(
+            "stroke-linecap",
+            "round"
+        );
+
+        path.setAttribute(
+            "stroke-linejoin",
+            "round"
+        );
+
+        svg.appendChild(path);
+
+        layer.appendChild(svg);
+    }
 
     renderTextAnnotation(annotation, layer, scale) {
         const point = this.currentViewport.convertToViewportPoint(

@@ -1,4 +1,3 @@
-
 import { PdfUtils } from "./config.js";
 
 export class PdfOperations {
@@ -13,41 +12,29 @@ export class PdfOperations {
 
     async merge(files) {
         if (!files || files.length < 2) {
-            throw new Error(
-                "Add at least two PDF files."
-            );
+            throw new Error("Add at least two PDF files.");
         }
 
         this.app.ui.showLoading("Merging PDFs...");
 
         try {
-            const mergedPdf =
-                await PDFLib.PDFDocument.create();
+            const mergedPdf = await PDFLib.PDFDocument.create();
 
             for (const file of files) {
                 const bytes = await file.arrayBuffer();
+                const sourcePdf = await PDFLib.PDFDocument.load(bytes);
 
-                const sourcePdf =
-                    await PDFLib.PDFDocument.load(bytes);
+                const copiedPages = await mergedPdf.copyPages(
+                    sourcePdf,
+                    sourcePdf.getPageIndices()
+                );
 
-                const copiedPages =
-                    await mergedPdf.copyPages(
-                        sourcePdf,
-                        sourcePdf.getPageIndices()
-                    );
-
-                copiedPages.forEach(function(page) {
-                    mergedPdf.addPage(page);
-                });
+                copiedPages.forEach(page => mergedPdf.addPage(page));
             }
 
             const mergedBytes = await mergedPdf.save();
 
-            PdfUtils.createDownload(
-                mergedBytes,
-                "merged.pdf"
-            );
-
+            PdfUtils.createDownload(mergedBytes, "merged.pdf");
             this.app.ui.setStatus("PDFs merged");
 
         } finally {
@@ -68,22 +55,18 @@ export class PdfOperations {
         this.app.ui.showLoading("Extracting pages...");
 
         try {
-            const sourcePdf =
-                await PDFLib.PDFDocument.load(
-                    this.document.workingBytes
-                );
+            const sourcePdf = await PDFLib.PDFDocument.load(
+                this.document.workingBytes
+            );
 
-            const outputPdf =
-                await PDFLib.PDFDocument.create();
+            const outputPdf = await PDFLib.PDFDocument.create();
 
             const pages = await outputPdf.copyPages(
                 sourcePdf,
                 pageIndexes
             );
 
-            pages.forEach(function(page) {
-                outputPdf.addPage(page);
-            });
+            pages.forEach(page => outputPdf.addPage(page));
 
             const outputBytes = await outputPdf.save();
 
@@ -111,15 +94,12 @@ export class PdfOperations {
             async function(pdf) {
                 const page = pdf.getPage(pageIndex);
 
-                const currentRotation =
-                    page.getRotation().angle;
+                const currentRotation = page.getRotation().angle;
 
                 const newRotation =
                     (currentRotation + direction + 360) % 360;
 
-                page.setRotation(
-                    PDFLib.degrees(newRotation)
-                );
+                page.setRotation(PDFLib.degrees(newRotation));
             }
         );
 
@@ -142,9 +122,7 @@ export class PdfOperations {
             }
         );
 
-        this.app.annotations.deletePageAndShift(
-            pageIndex + 1
-        );
+        this.app.annotations.deletePageAndShift(pageIndex + 1);
 
         this.app.annotations.syncLayer(
             this.document.currentPage,
@@ -156,7 +134,6 @@ export class PdfOperations {
 
     async moveCurrentPage(direction) {
         const currentIndex = this.document.currentPage - 1;
-
         const targetIndex = currentIndex + direction;
 
         if (
@@ -169,13 +146,11 @@ export class PdfOperations {
         this.app.ui.showLoading("Reordering pages...");
 
         try {
-            const sourcePdf =
-                await PDFLib.PDFDocument.load(
-                    this.document.workingBytes
-                );
+            const sourcePdf = await PDFLib.PDFDocument.load(
+                this.document.workingBytes
+            );
 
-            const outputPdf =
-                await PDFLib.PDFDocument.create();
+            const outputPdf = await PDFLib.PDFDocument.create();
 
             const pageIndexes = sourcePdf.getPageIndices();
 
@@ -189,9 +164,7 @@ export class PdfOperations {
                 pageIndexes
             );
 
-            copiedPages.forEach(function(page) {
-                outputPdf.addPage(page);
-            });
+            copiedPages.forEach(page => outputPdf.addPage(page));
 
             const outputBytes = await outputPdf.save();
 
@@ -245,7 +218,6 @@ export class PdfOperations {
 
     async applyModifiedBytes(bytes, preferredPage) {
         const pdf = await PDFLib.PDFDocument.load(bytes);
-
         const totalPages = pdf.getPageCount();
 
         const pageNumber = Math.min(
@@ -254,10 +226,132 @@ export class PdfOperations {
         );
 
         await this.document.reloadWorkingDocument(bytes);
-
         await this.document.goToPage(pageNumber);
 
         this.app.ui.updateControls();
+    }
+
+    getPdfColor(value, fallback) {
+        if (
+            typeof value !== "string" ||
+            !/^#[0-9a-f]{6}$/i.test(value)
+        ) {
+            value = fallback;
+        }
+
+        const hex = value.substring(1);
+
+        return PDFLib.rgb(
+            parseInt(hex.substring(0, 2), 16) / 255,
+            parseInt(hex.substring(2, 4), 16) / 255,
+            parseInt(hex.substring(4, 6), 16) / 255
+        );
+    }
+
+    wrapText(text, font, fontSize, maxWidth) {
+        const paragraphs = text.split(/\r\n|\r|\n/);
+        const lines = [];
+
+        paragraphs.forEach(paragraph => {
+            if (paragraph.length === 0) {
+                lines.push("");
+                return;
+            }
+
+            if (!maxWidth || maxWidth <= 0) {
+                lines.push(paragraph);
+                return;
+            }
+
+            const words = paragraph.split(" ");
+            let currentLine = "";
+
+            words.forEach(word => {
+                const candidate = currentLine
+                    ? currentLine + " " + word
+                    : word;
+
+                const candidateWidth =
+                    font.widthOfTextAtSize(candidate, fontSize);
+
+                if (currentLine && candidateWidth > maxWidth) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = candidate;
+                }
+            });
+
+            lines.push(currentLine);
+        });
+
+        return lines;
+    }
+
+    drawHighlight(page, annotation) {
+        const highlightColor = this.getPdfColor(
+            annotation.color,
+            "#ffeb3b"
+        );
+
+        const opacity = Math.max(
+            0,
+            Math.min(1, Number(annotation.opacity ?? 0.7))
+        );
+
+        for (const rectangle of annotation.rectangles || []) {
+            page.drawRectangle({
+                x: rectangle.x,
+                y: rectangle.y,
+                width: rectangle.width,
+                height: rectangle.height,
+                color: highlightColor,
+                opacity: opacity,
+                borderWidth: 0
+            });
+        }
+    }
+
+    drawFreehand(page, annotation) {
+        const points = annotation.points || [];
+
+        if (points.length < 2) {
+            return;
+        }
+
+        const color = this.getPdfColor(
+            annotation.color,
+            "#123B78"
+        );
+
+        const thickness = Math.max(
+            0.1,
+            Number(annotation.thickness) || 3
+        );
+
+        const opacity = Math.max(
+            0,
+            Math.min(1, Number(annotation.opacity ?? 1))
+        );
+
+        for (let index = 1; index < points.length; index++) {
+            const start = points[index - 1];
+            const end = points[index];
+
+            page.drawLine({
+                start: {
+                    x: start.x,
+                    y: start.y
+                },
+                end: {
+                    x: end.x,
+                    y: end.y
+                },
+                thickness: thickness,
+                color: color,
+                opacity: opacity
+            });
+        }
     }
 
     async downloadCurrentDocument() {
@@ -295,127 +389,29 @@ export class PdfOperations {
                 PDFLib.StandardFonts.HelveticaBoldOblique
             );
 
-            const getPdfColor = function(value, fallback) {
-                if (
-                    typeof value !== "string" ||
-                    !/^#[0-9a-f]{6}$/i.test(value)
-                ) {
-                    value = fallback;
-                }
-
-                const hex = value.substring(1);
-
-                return PDFLib.rgb(
-                    parseInt(hex.substring(0, 2), 16) / 255,
-                    parseInt(hex.substring(2, 4), 16) / 255,
-                    parseInt(hex.substring(4, 6), 16) / 255
-                );
-            };
-
-            const wrapText = function(
-                text,
-                font,
-                fontSize,
-                maxWidth
-            ) {
-                const paragraphs = text.split(/\r\n|\r|\n/);
-
-                const lines = [];
-
-                paragraphs.forEach(function(paragraph) {
-                    if (paragraph.length === 0) {
-                        lines.push("");
-                        return;
-                    }
-
-                    if (!maxWidth || maxWidth <= 0) {
-                        lines.push(paragraph);
-                        return;
-                    }
-
-                    const words = paragraph.split(" ");
-
-                    let currentLine = "";
-
-                    words.forEach(function(word) {
-                        const candidate = currentLine
-                            ? currentLine + " " + word
-                            : word;
-
-                        const candidateWidth =
-                            font.widthOfTextAtSize(
-                                candidate,
-                                fontSize
-                            );
-
-                        if (
-                            currentLine &&
-                            candidateWidth > maxWidth
-                        ) {
-                            lines.push(currentLine);
-                            currentLine = word;
-                        } else {
-                            currentLine = candidate;
-                        }
-                    });
-
-                    lines.push(currentLine);
-                });
-
-                return lines;
-            };
-
-            
-for (const annotation of annotations) {
-    const pageIndex = annotation.pageNumber - 1;
-
-    if (
-        pageIndex < 0 ||
-        pageIndex >= pdf.getPageCount()
-    ) {
-        continue;
-    }
-
-    const page = pdf.getPage(pageIndex);
-
-    if (annotation.type === "highlight") {
-        const highlightColor = getPdfColor(
-            annotation.color,
-            "#ffeb3b"
-        );
-
-        const opacity = Math.max(
-            0,
-            Math.min(
-                1,
-                Number(annotation.opacity ?? 0.35)
-            )
-        );
-
-        for (const rectangle of annotation.rectangles || []) {
-            page.drawRectangle({
-                x: rectangle.x,
-                y: rectangle.y,
-                width: rectangle.width,
-                height: rectangle.height,
-                color: highlightColor,
-                opacity: opacity,
-                borderWidth: 0
-            });
-        }
-
-        continue;
-    }
-
-    if (annotation.type !== "text") {
-        continue;
-    }
-
+            for (const annotation of annotations) {
+                const pageIndex = annotation.pageNumber - 1;
 
                 if (
                     pageIndex < 0 ||
                     pageIndex >= pdf.getPageCount()
                 ) {
+                    continue;
+                }
+
+                const page = pdf.getPage(pageIndex);
+
+                if (annotation.type === "highlight") {
+                    this.drawHighlight(page, annotation);
+                    continue;
+                }
+
+                if (annotation.type === "drawing") {
+                    this.drawFreehand(page, annotation);
+                    continue;
+                }
+
+                if (annotation.type !== "text") {
                     continue;
                 }
 
@@ -443,7 +439,7 @@ for (const annotation of annotations) {
                     continue;
                 }
 
-                const textColor = getPdfColor(
+                const textColor = this.getPdfColor(
                     annotation.color,
                     "#000000"
                 );
@@ -456,10 +452,7 @@ for (const annotation of annotations) {
                     /^#[0-9a-f]{6}$/i.test(backgroundColor);
 
                 const fillColor = hasBackground
-                    ? getPdfColor(
-                        backgroundColor,
-                        "#FFFFFF"
-                    )
+                    ? this.getPdfColor(backgroundColor, "#FFFFFF")
                     : null;
 
                 const maxWidth =
@@ -469,7 +462,7 @@ for (const annotation of annotations) {
                         ? Number(annotation.width)
                         : null;
 
-                const lines = wrapText(
+                const lines = this.wrapText(
                     text,
                     font,
                     fontSize,
@@ -480,12 +473,11 @@ for (const annotation of annotations) {
 
                 let measuredWidth = 0;
 
-                lines.forEach(function(line) {
-                    const lineWidth =
-                        font.widthOfTextAtSize(
-                            line,
-                            fontSize
-                        );
+                lines.forEach(line => {
+                    const lineWidth = font.widthOfTextAtSize(
+                        line,
+                        fontSize
+                    );
 
                     measuredWidth = Math.max(
                         measuredWidth,
@@ -493,8 +485,7 @@ for (const annotation of annotations) {
                     );
                 });
 
-                const boxWidth =
-                    maxWidth || measuredWidth;
+                const boxWidth = maxWidth || measuredWidth;
 
                 const boxHeight =
                     Number.isFinite(Number(annotation.height)) &&
@@ -514,15 +505,9 @@ for (const annotation of annotations) {
 
                 page.pushOperators(
                     PDFLib.pushGraphicsState(),
-                    PDFLib.translate(
-                        boxCenterX,
-                        boxCenterY
-                    ),
+                    PDFLib.translate(boxCenterX, boxCenterY),
                     PDFLib.rotateDegrees(pdfRotation),
-                    PDFLib.translate(
-                        -boxCenterX,
-                        -boxCenterY
-                    )
+                    PDFLib.translate(-boxCenterX, -boxCenterY)
                 );
 
                 if (hasBackground) {
@@ -535,26 +520,22 @@ for (const annotation of annotations) {
                     });
                 }
 
-                lines.forEach(function(line, index) {
+                lines.forEach((line, index) => {
                     const lineY =
                         annotation.y - index * lineHeight;
 
-                    const lineWidth =
-                        font.widthOfTextAtSize(
-                            line,
-                            fontSize
-                        );
-
-                    page.drawText(
+                    const lineWidth = font.widthOfTextAtSize(
                         line,
-                        {
-                            x: annotation.x,
-                            y: lineY,
-                            size: fontSize,
-                            font: font,
-                            color: textColor
-                        }
+                        fontSize
                     );
+
+                    page.drawText(line, {
+                        x: annotation.x,
+                        y: lineY,
+                        size: fontSize,
+                        font: font,
+                        color: textColor
+                    });
 
                     const decorationLines = [];
 
@@ -588,7 +569,7 @@ for (const annotation of annotations) {
                         });
                     }
 
-                    decorationLines.forEach(function(decoration) {
+                    decorationLines.forEach(decoration => {
                         const decorationY =
                             decoration.position === "above"
                                 ? lineY + decoration.offset
@@ -631,5 +612,4 @@ for (const annotation of annotations) {
             this.app.ui.hideLoading();
         }
     }
-
 }

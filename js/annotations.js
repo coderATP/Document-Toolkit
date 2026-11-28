@@ -15,6 +15,9 @@ import {
     PdfAnnotationHighlightManager
 } from "./managers/annotation-highlight-manager.js";
 
+import {
+    PdfAnnotationDrawingManager
+} from "./managers/annotation-drawing-manager.js";
 
 export class PdfAnnotationManager {
 
@@ -36,6 +39,8 @@ export class PdfAnnotationManager {
         this.textManager = new PdfAnnotationTextManager();
         this.highlightManager =
             new PdfAnnotationHighlightManager();
+        this.drawingManager = new PdfAnnotationDrawingManager();
+this.drawingManager.initialize(this);
 
         this.installModuleMethods(this.store);
 this.installModuleMethods(this.renderer);

@@ -67,6 +67,7 @@ export class PdfUI {
             "loadingText",
             "errorMessage",
             "addTextButton",
+            "drawButton",
             "textFontSize",
             "textColor",
             "textBoldButton",
@@ -234,7 +235,7 @@ clearError() {
 
         this.elements.addTextButton.disabled =
             !hasDocument;
-
+        this.elements.drawButton.disabled = !hasDocument; 
         this.elements.textFontSize.disabled =
             !hasDocument;
 
